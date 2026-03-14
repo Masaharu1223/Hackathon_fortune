@@ -1,0 +1,30 @@
+node_modules/
+dist/
+.next/
+out/
+cdk.out/
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CDK
+cdk.context.json
+
+# Next.js
+.next/
+out/

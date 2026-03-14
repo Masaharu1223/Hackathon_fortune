@@ -1,0 +1,167 @@
+import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import {
+  ENTITY_PREFIXES,
+  GSI,
+  type User,
+  type WatchlistItem,
+  type Reservation,
+  type ApiResponse,
+} from '@ichiban-kuji/shared';
+import { keys, getItem, putItem, deleteItem, queryItems, queryByGSI } from '../services/dynamodb.js';
+
+// ---------------------------------------------------------------------------
+// CORS headers
+// ---------------------------------------------------------------------------
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  'Content-Type': 'application/json',
+};
+
+function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyResult {
+  return {
+    statusCode,
+    headers: CORS_HEADERS,
+    body: JSON.stringify(body),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Extract userId from Cognito authorizer
+// ---------------------------------------------------------------------------
+
+function getUserId(event: APIGatewayProxyEvent): string | null {
+  return event.requestContext.authorizer?.claims?.sub ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Handler
+// ---------------------------------------------------------------------------
+
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  if (event.httpMethod === 'OPTIONS') {
+    return jsonResponse(200, { success: true });
+  }
+
+  try {
+    const userId = getUserId(event);
+    if (!userId) {
+      return jsonResponse(401, { success: false, error: 'Unauthorized' });
+    }
+
+    const method = event.httpMethod;
+    const path = event.resource ?? event.path;
+
+    // GET /users/me
+    if (method === 'GET' && path === '/users/me') {
+      return await getMe(userId);
+    }
+
+    // GET /users/me/watchlist
+    if (method === 'GET' && path === '/users/me/watchlist') {
+      return await getWatchlist(userId);
+    }
+
+    // POST /users/me/watchlist
+    if (method === 'POST' && path === '/users/me/watchlist') {
+      return await addWatchlistItem(userId, event);
+    }
+
+    // DELETE /users/me/watchlist
+    if (method === 'DELETE' && path === '/users/me/watchlist') {
+      return await removeWatchlistItem(userId, event);
+    }
+
+    // GET /users/me/reservations
+    if (method === 'GET' && path === '/users/me/reservations') {
+      return await getReservations(userId);
+    }
+
+    return jsonResponse(404, { success: false, error: 'Not found' });
+  } catch (err) {
+    console.error('Users handler error:', err);
+    return jsonResponse(500, { success: false, error: 'Internal server error' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Route implementations
+// ---------------------------------------------------------------------------
+
+async function getMe(userId: string): Promise<APIGatewayProxyResult> {
+  const user = await getItem<User>(keys.user(userId));
+  if (!user) {
+    return jsonResponse(404, { success: false, error: 'User not found' });
+  }
+  return jsonResponse(200, { success: true, data: user });
+}
+
+async function getWatchlist(userId: string): Promise<APIGatewayProxyResult> {
+  const items = await queryItems<WatchlistItem>({
+    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+    ExpressionAttributeValues: {
+      ':pk': `${ENTITY_PREFIXES.USER}${userId}`,
+      ':sk': ENTITY_PREFIXES.WATCH,
+    },
+  });
+
+  return jsonResponse(200, { success: true, data: items });
+}
+
+async function addWatchlistItem(
+  userId: string,
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return jsonResponse(400, { success: false, error: 'Request body is required' });
+  }
+
+  const body = JSON.parse(event.body) as Partial<WatchlistItem>;
+
+  if (!body.seriesId || !body.seriesTitle) {
+    return jsonResponse(400, { success: false, error: 'seriesId and seriesTitle are required' });
+  }
+
+  const watchKeys = keys.watchlist(userId, body.seriesId);
+  const now = new Date().toISOString();
+
+  const item: WatchlistItem & Record<string, unknown> = {
+    ...watchKeys,
+    userId,
+    seriesId: body.seriesId,
+    seriesTitle: body.seriesTitle,
+    notifyRadius: body.notifyRadius ?? 5,
+    userLat: body.userLat ?? 0,
+    userLng: body.userLng ?? 0,
+    createdAt: now,
+  };
+
+  await putItem(item);
+  return jsonResponse(201, { success: true, data: item });
+}
+
+async function removeWatchlistItem(
+  userId: string,
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  const seriesId = event.queryStringParameters?.seriesId;
+  if (!seriesId) {
+    return jsonResponse(400, { success: false, error: 'seriesId query parameter is required' });
+  }
+
+  const watchKeys = keys.watchlist(userId, seriesId);
+  await deleteItem({ PK: watchKeys.PK, SK: watchKeys.SK });
+  return jsonResponse(200, { success: true });
+}
+
+async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
+  const items = await queryByGSI<Reservation>(
+    GSI.GSI3,
+    'GSI3PK',
+    `${ENTITY_PREFIXES.USER}${userId}`,
+  );
+
+  return jsonResponse(200, { success: true, data: items });
+}
