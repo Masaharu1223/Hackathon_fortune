@@ -3,6 +3,8 @@ const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID || '';
 const REDIRECT_URI = process.env.NEXT_PUBLIC_REDIRECT_URI || '';
 
 const TOKEN_KEY = 'auth_token';
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+const DUMMY_TOKEN = 'debug-dummy-token';
 
 export function getGoogleLoginUrl(): string {
   const params = new URLSearchParams({
@@ -42,11 +44,17 @@ export function parseTokenFromCallback(): string | null {
 }
 
 export function getToken(): string | null {
+  if (BYPASS_AUTH) {
+    return DUMMY_TOKEN;
+  }
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 }
 
 export function isLoggedIn(): boolean {
+  if (BYPASS_AUTH) {
+    return true;
+  }
   return !!getToken();
 }
 
