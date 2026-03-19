@@ -37,7 +37,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-100 bg-white/95 backdrop-blur-sm safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-surface/95 backdrop-blur-sm safe-area-bottom">
       <div className="mx-auto flex max-w-md">
         {NAV_ITEMS.map((item) => {
           const active =
@@ -48,8 +48,9 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] text-[10px] font-medium transition-colors ${active ? 'text-indigo-600' : 'text-gray-400'
-                }`}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] text-[10px] font-medium transition-colors ${
+                active ? 'text-brand' : 'text-content-subtle'
+              }`}
             >
               {item.icon(active)}
               {item.label}

@@ -1,19 +1,257 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #1e1b4b;
+  --background: #fff9f1;
+  --foreground: #3b2f2a;
+  --border: #eadfcc;
+
+  --surface: #fffdf9;
+
+  --content-strong: #3b2f2a;
+  --content: #5a4943;
+  --content-muted: #7a6a62;
+  --content-subtle: #9b8a81;
+
+  --brand: #ea7a2e;
+  --brand-hover: #f08f47;
+  --brand-soft: #fff1df;
+  --brand-border: #f4c89e;
+  --brand-focus: #ee9d5d;
+
+  --success: #5f8141;
+  --success-soft: #eef5e7;
+
+  --warning: #b67b1f;
+  --warning-soft: #fff4dc;
+
+  --danger: #c45d49;
+  --danger-soft: #fff0eb;
+
+  --on-brand: #fffaf4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+
+  --color-content-strong: var(--content-strong);
+  --color-content: var(--content);
+  --color-content-muted: var(--content-muted);
+  --color-content-subtle: var(--content-subtle);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
+  --color-brand-focus: var(--brand-focus);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --color-on-brand: var(--on-brand);
+
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+.ui-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ui-input {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--content-strong);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.ui-input::placeholder {
+  color: var(--content-subtle);
+}
+
+.ui-input:focus {
+  border-color: var(--brand-focus);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(255, 228, 193, 0.9);
+}
+
+.ui-button-primary {
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+.ui-button-primary:hover {
+  background: var(--brand-hover);
+}
+
+.ui-button-primary:active {
+  background: var(--brand-hover);
+}
+
+.ui-button-danger {
+  border: 1px solid var(--danger);
+  background: var(--surface);
+  color: var(--danger);
+}
+
+.ui-button-danger:hover {
+  background: var(--danger-soft);
+}
+
+.ui-badge {
+  display: inline-block;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+.ui-badge-brand {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.ui-badge-brand-strong {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.ui-badge-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.ui-badge-success-emphasis {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.ui-badge-info {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.ui-badge-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.ui-badge-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.ui-badge-neutral {
+  background: var(--background);
+  color: var(--content-muted);
+}
+
+.ui-spinner {
+  border-color: var(--brand-border);
+  border-top-color: var(--brand);
+}
+
+.ui-panel-danger {
+  background: var(--danger-soft);
+}
+
+.ui-panel-warning {
+  background: var(--warning-soft);
+}
+
+.ui-panel-muted {
+  background: var(--brand-soft);
+}
+
+.store-map-popup {
+  min-width: 180px;
+}
+
+.store-map-name {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--content-strong);
+}
+
+.store-map-address {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--content-muted);
+}
+
+.store-map-remaining {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.store-map-prizes {
+  margin-bottom: 8px;
+}
+
+.store-map-prize {
+  display: inline-block;
+  margin: 2px;
+  border-radius: 4px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.store-map-marker {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+  border-radius: 9999px;
+  background: var(--brand);
+  box-shadow: 0 2px 8px rgba(234, 122, 46, 0.35);
+  color: var(--on-brand);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.store-map-button {
+  width: 100%;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.store-map-button--add {
+  border: none;
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+.store-map-button--remove {
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--content-muted);
 }

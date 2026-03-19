@@ -9,7 +9,7 @@ export default function Header() {
   const loggedIn = typeof window !== 'undefined' ? isLoggedIn() : false;
 
   return (
-    <header className="sticky top-0 z-50 bg-indigo-600 text-white shadow-lg">
+    <header className="sticky top-0 z-50 bg-brand text-on-brand shadow-lg">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
         <Link href="/" className="text-lg font-bold tracking-tight">
           一番くじナビ
@@ -17,7 +17,7 @@ export default function Header() {
 
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="rounded-md p-2 hover:bg-indigo-500 transition-colors md:hidden"
+          className="rounded-md p-2 transition-colors hover:bg-brand-hover md:hidden"
           aria-label="メニュー"
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,26 +30,26 @@ export default function Header() {
         </button>
 
         <nav className="hidden items-center gap-4 text-sm md:flex">
-          <Link href="/" className="hover:text-indigo-200 transition-colors">
+          <Link href="/" className="transition-colors hover:text-brand-soft">
             店舗検索
           </Link>
-          <Link href="/watchlist/" className="hover:text-indigo-200 transition-colors">
+          <Link href="/watchlist/" className="transition-colors hover:text-brand-soft">
             ウォッチリスト
           </Link>
-          <Link href="/reservations/" className="hover:text-indigo-200 transition-colors">
+          <Link href="/reservations/" className="transition-colors hover:text-brand-soft">
             予約一覧
           </Link>
           {loggedIn ? (
             <button
               onClick={logout}
-              className="rounded-full bg-indigo-500 px-4 py-1.5 text-sm font-medium hover:bg-indigo-400 transition-colors"
+              className="rounded-full bg-brand-hover px-4 py-1.5 text-sm font-medium text-on-brand transition-colors hover:bg-brand"
             >
               ログアウト
             </button>
           ) : (
             <Link
               href="/login/"
-              className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+              className="rounded-full bg-surface px-4 py-1.5 text-sm font-medium text-brand transition-colors hover:bg-brand-soft"
             >
               ログイン
             </Link>
@@ -58,33 +58,33 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <nav className="border-t border-indigo-500 px-4 pb-4 md:hidden">
+        <nav className="border-t border-brand-hover px-4 pb-4 md:hidden">
           <div className="flex flex-col gap-2 pt-2">
             <Link
               href="/"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-3 py-2 hover:bg-indigo-500 transition-colors"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-brand-hover"
             >
               店舗検索
             </Link>
             <Link
               href="/watchlist/"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-3 py-2 hover:bg-indigo-500 transition-colors"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-brand-hover"
             >
               ウォッチリスト
             </Link>
             <Link
               href="/reservations/"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-3 py-2 hover:bg-indigo-500 transition-colors"
+              className="rounded-md px-3 py-2 transition-colors hover:bg-brand-hover"
             >
               予約一覧
             </Link>
             {loggedIn ? (
               <button
                 onClick={() => { setMenuOpen(false); logout(); }}
-                className="rounded-md px-3 py-2 text-left hover:bg-indigo-500 transition-colors"
+                className="rounded-md px-3 py-2 text-left transition-colors hover:bg-brand-hover"
               >
                 ログアウト
               </button>
@@ -92,7 +92,7 @@ export default function Header() {
               <Link
                 href="/login/"
                 onClick={() => setMenuOpen(false)}
-                className="rounded-md px-3 py-2 hover:bg-indigo-500 transition-colors"
+                className="rounded-md px-3 py-2 transition-colors hover:bg-brand-hover"
               >
                 ログイン
               </Link>

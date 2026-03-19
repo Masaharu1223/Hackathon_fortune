@@ -60,20 +60,7 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
     stores.forEach((store) => {
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="
-          background: #4f46e5;
-          color: white;
-          border-radius: 50%;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-          box-shadow: 0 2px 8px rgba(79,70,229,0.4);
-          border: 2px solid white;
-        ">${store.remainingTickets}</div>`,
+        html: `<div class="store-map-marker">${store.remainingTickets}</div>`,
         iconSize: [36, 36],
         iconAnchor: [18, 18],
       });
@@ -81,26 +68,25 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
       const marker = L.marker([store.lat, store.lng], { icon });
 
       const prizesHtml = store.matchedPrizes
-        .map((p) => `<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px;">${p}</span>`)
+        .map((p) => `<span class="store-map-prize">${p}</span>`)
         .join('');
 
       const isMy = isMyStore(store.store_id);
       const btnLabel = isMy ? 'マイ店舗から解除' : 'マイ店舗に追加';
-      const btnStyle = isMy
-        ? 'background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;'
-        : 'background:#4f46e5;color:white;border:none;';
+      const btnClass = isMy
+        ? 'my-store-btn store-map-button store-map-button--remove'
+        : 'my-store-btn store-map-button store-map-button--add';
 
       const popup = L.popup({ closeButton: false }).setContent(
-        `<div style="min-width:180px">
-          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${store.name}</div>
-          <div style="color:#6b7280;font-size:12px;margin-bottom:6px;">${store.address}</div>
-          <div style="font-size:12px;color:#4f46e5;font-weight:600;margin-bottom:4px;">残り ${store.remainingTickets} 枚</div>
-          <div style="margin-bottom:8px;">${prizesHtml}</div>
+        `<div class="store-map-popup">
+          <div class="store-map-name">${store.name}</div>
+          <div class="store-map-address">${store.address}</div>
+          <div class="store-map-remaining">残り ${store.remainingTickets} 枚</div>
+          <div class="store-map-prizes">${prizesHtml}</div>
           <button
             data-store-id="${store.store_id}"
             data-action="${isMy ? 'remove' : 'add'}"
-            class="my-store-btn"
-            style="${btnStyle}width:100%;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;"
+            class="${btnClass}"
           >${btnLabel}</button>
         </div>`,
       );
@@ -123,12 +109,12 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
         addMyStore(storeId);
         target.textContent = 'マイ店舗から解除';
         target.setAttribute('data-action', 'remove');
-        target.setAttribute('style', 'background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;width:100%;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;');
+        target.className = 'my-store-btn store-map-button store-map-button--remove';
       } else {
         removeMyStore(storeId);
         target.textContent = 'マイ店舗に追加';
         target.setAttribute('data-action', 'add');
-        target.setAttribute('style', 'background:#4f46e5;color:white;border:none;width:100%;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;');
+        target.className = 'my-store-btn store-map-button store-map-button--add';
       }
     };
     container.addEventListener('click', handleClick);

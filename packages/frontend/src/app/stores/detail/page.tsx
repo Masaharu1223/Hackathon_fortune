@@ -58,8 +58,8 @@ function StoreDetailContent() {
 
   if (!storeId) {
     return (
-      <div className="rounded-xl bg-yellow-50 p-6 text-center">
-        <p className="text-sm text-yellow-600">店舗IDが指定されていません</p>
+      <div className="ui-panel-warning rounded-xl p-6 text-center">
+        <p className="text-sm text-warning">店舗IDが指定されていません</p>
       </div>
     );
   }
@@ -67,16 +67,16 @@ function StoreDetailContent() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-        <p className="text-sm text-gray-500">読み込み中...</p>
+        <div className="ui-spinner mb-4 h-10 w-10 animate-spin rounded-full border-4" />
+        <p className="text-sm text-content-muted">読み込み中...</p>
       </div>
     );
   }
 
   if (error || !store) {
     return (
-      <div className="rounded-xl bg-red-50 p-6 text-center">
-        <p className="text-sm text-red-600">{error || '店舗が見つかりません'}</p>
+      <div className="ui-panel-danger rounded-xl p-6 text-center">
+        <p className="text-sm text-danger">{error || '店舗が見つかりません'}</p>
       </div>
     );
   }
@@ -84,12 +84,12 @@ function StoreDetailContent() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{store.name}</h1>
-        <p className="mt-1 text-sm text-gray-500">{store.address}</p>
+        <h1 className="text-2xl font-bold text-content-strong">{store.name}</h1>
+        <p className="mt-1 text-sm text-content-muted">{store.address}</p>
       </div>
 
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">取扱くじ一覧</h2>
+        <h2 className="text-lg font-semibold text-content-strong">取扱くじ一覧</h2>
       </div>
 
       {store.series && store.series.length > 0 ? (
@@ -98,16 +98,16 @@ function StoreDetailContent() {
             <div key={series.series_id} className="relative">
               <KujiCard series={series} storeId={store.store_id} onReserve={handleReserve} />
               {reserving === series.series_id && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-surface/70">
+                  <div className="ui-spinner h-8 w-8 animate-spin rounded-full border-4" />
                 </div>
               )}
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-xl bg-gray-50 p-8 text-center">
-          <p className="text-gray-500">現在取扱中のくじはありません</p>
+        <div className="ui-panel-muted rounded-xl p-8 text-center">
+          <p className="text-content-muted">現在取扱中のくじはありません</p>
         </div>
       )}
     </div>
@@ -119,8 +119,8 @@ export default function StoreDetailPage() {
     <Suspense
       fallback={
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
-          <p className="text-sm text-gray-500">読み込み中...</p>
+          <div className="ui-spinner mb-4 h-10 w-10 animate-spin rounded-full border-4" />
+          <p className="text-sm text-content-muted">読み込み中...</p>
         </div>
       }
     >

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 
 interface StoreForm {
@@ -35,6 +36,7 @@ async function adminRequest(path: string, body: unknown) {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'store' | 'series' | 'reservations'>('store');
   const [storeForm, setStoreForm] = useState<StoreForm>({
     name: '',
@@ -50,11 +52,15 @@ export default function AdminPage() {
     prizes: '',
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const loggedIn = typeof window === 'undefined' ? true : isLoggedIn();
 
-  if (typeof window !== 'undefined' && !isLoggedIn()) {
-    window.location.href = '/login/';
-    return null;
-  }
+  useEffect(() => {
+    if (!loggedIn) {
+      router.replace('/login/');
+    }
+  }, [loggedIn, router]);
+
+  if (!loggedIn) return null;
 
   const handleStoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,25 +111,25 @@ export default function AdminPage() {
   ];
 
   const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none transition-colors';
-  const labelClass = 'mb-1 block text-sm font-medium text-gray-700';
+    'ui-input w-full rounded-lg px-3 py-2.5 text-sm transition-colors';
+  const labelClass = 'mb-1 block text-sm font-medium text-content';
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">管理画面</h1>
-        <p className="mt-1 text-sm text-gray-500">店舗やくじシリーズを管理します</p>
+        <h1 className="text-2xl font-bold text-content-strong">管理画面</h1>
+        <p className="mt-1 text-sm text-content-muted">店舗やくじシリーズを管理します</p>
       </div>
 
-      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="mb-6 flex gap-1 rounded-lg bg-brand-soft p-1">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => { setActiveTab(tab.key); setMessage(null); }}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-surface text-brand shadow-sm'
+                : 'text-content-muted hover:text-content'
             }`}
           >
             {tab.label}
@@ -135,8 +141,8 @@ export default function AdminPage() {
         <div
           className={`mb-4 rounded-lg p-3 text-sm ${
             message.type === 'success'
-              ? 'bg-green-50 text-green-700'
-              : 'bg-red-50 text-red-700'
+              ? 'bg-success-soft text-success'
+              : 'ui-panel-danger text-danger'
           }`}
         >
           {message.text}
@@ -195,7 +201,7 @@ export default function AdminPage() {
           </div>
           <button
             type="submit"
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 active:bg-indigo-700"
+            className="ui-button-primary w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
           >
             店舗を登録
           </button>
@@ -260,7 +266,7 @@ export default function AdminPage() {
           </div>
           <button
             type="submit"
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 active:bg-indigo-700"
+            className="ui-button-primary w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
           >
             くじシリーズを登録
           </button>
@@ -268,8 +274,8 @@ export default function AdminPage() {
       )}
 
       {activeTab === 'reservations' && (
-        <div className="rounded-xl bg-gray-50 p-8 text-center">
-          <p className="text-gray-500">
+        <div className="ui-panel-muted rounded-xl p-8 text-center">
+          <p className="text-content-muted">
             予約管理機能は今後実装予定です
           </p>
         </div>
