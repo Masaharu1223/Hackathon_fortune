@@ -59,10 +59,20 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
 
     stores.forEach((store) => {
       const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div class="store-map-marker">${store.remainingTickets}</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        className: 'store-map-marker-icon',
+        html: `
+          <div class="store-map-marker">
+            <img
+              src="/shop_logo.png"
+              alt=""
+              class="store-map-marker-image"
+            />
+            <span class="store-map-marker-badge">${store.remainingTickets}</span>
+          </div>
+        `,
+        iconSize: [52, 52],
+        iconAnchor: [26, 26],
+        popupAnchor: [0, -24],
       });
 
       const marker = L.marker([store.lat, store.lng], { icon });
