@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
@@ -33,9 +34,15 @@ export default function RootLayout({
           {/* トップバー */}
           <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-lg font-bold tracking-tight text-brand">
-                一番くじナビ
-              </span>
+              <Link href="/" aria-label="一番くじナビ">
+                <Image
+                  src="/header-logo.png"
+                  alt="一番くじナビ"
+                  width={140}
+                  height={40}
+                  priority
+                />
+              </Link>
 
               <div className="flex items-center gap-1">
                 <Link
