@@ -3,11 +3,10 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { isMyStore, addMyStore, removeMyStore } from '@/lib/myStores';
 
 export interface MapStore {
-  store_id: string;
-  name: string;
+  storeId: string;
+  storeName: string;
   address: string;
   lat: number;
   lng: number;
@@ -59,49 +58,40 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
 
     stores.forEach((store) => {
       const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="
-          background: #4f46e5;
-          color: white;
-          border-radius: 50%;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-          box-shadow: 0 2px 8px rgba(79,70,229,0.4);
-          border: 2px solid white;
-        ">${store.remainingTickets}</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        className: 'store-map-marker-icon',
+        html: `
+          <div class="store-map-marker">
+            <img
+              src="/shop_logo.png"
+              alt=""
+              class="store-map-marker-image"
+            />
+            <span class="store-map-marker-badge">${store.remainingTickets}</span>
+          </div>
+        `,
+        iconSize: [52, 52],
+        iconAnchor: [26, 26],
+        popupAnchor: [0, -24],
       });
 
       const marker = L.marker([store.lat, store.lng], { icon });
 
       const prizesHtml = store.matchedPrizes
-        .map((p) => `<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px;">${p}</span>`)
+        .map((p) => `<span class="store-map-prize">${p}</span>`)
         .join('');
 
-      const isMy = isMyStore(store.store_id);
-      const btnLabel = isMy ? 'マイ店舗から解除' : 'マイ店舗に追加';
-      const btnStyle = isMy
-        ? 'background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;'
-        : 'background:#4f46e5;color:white;border:none;';
-
       const popup = L.popup({ closeButton: false }).setContent(
-        `<div style="min-width:180px">
-          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${store.name}</div>
-          <div style="color:#6b7280;font-size:12px;margin-bottom:6px;">${store.address}</div>
-          <div style="font-size:12px;color:#4f46e5;font-weight:600;margin-bottom:4px;">残り ${store.remainingTickets} 枚</div>
-          <div style="margin-bottom:8px;">${prizesHtml}</div>
-          <button
-            data-store-id="${store.store_id}"
-            data-action="${isMy ? 'remove' : 'add'}"
-            class="my-store-btn"
-            style="${btnStyle}width:100%;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;"
-          >${btnLabel}</button>
+        `<div class="store-map-popup">
+          <div class="store-map-name">${store.storeName}</div>
+          <div class="store-map-address">${store.address}</div>
+          <div class="store-map-remaining">残り ${store.remainingTickets} 枚</div>
+          <div class="store-map-prizes">${prizesHtml}</div>
+          <div class="store-map-actions">
+            <a
+              href="/stores/detail/?id=${store.storeId}"
+              class="store-map-button store-map-button--detail"
+            >店舗の詳細</a>
+          </div>
         </div>`,
       );
 
@@ -110,38 +100,13 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
       markersRef.current!.addLayer(marker);
     });
 
-    // マイ店舗ボタンのクリックハンドラ
-    const container = mapRef.current.getContainer();
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.classList.contains('my-store-btn')) return;
-      const storeId = target.getAttribute('data-store-id');
-      const action = target.getAttribute('data-action');
-      if (!storeId) return;
-
-      if (action === 'add') {
-        addMyStore(storeId);
-        target.textContent = 'マイ店舗から解除';
-        target.setAttribute('data-action', 'remove');
-        target.setAttribute('style', 'background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;width:100%;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;');
-      } else {
-        removeMyStore(storeId);
-        target.textContent = 'マイ店舗に追加';
-        target.setAttribute('data-action', 'add');
-        target.setAttribute('style', 'background:#4f46e5;color:white;border:none;width:100%;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;');
-      }
-    };
-    container.addEventListener('click', handleClick);
-
     // 全マーカーが収まるようにフィット
     if (stores.length > 0) {
       const bounds = L.latLngBounds(stores.map((s) => [s.lat, s.lng]));
       mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
 
-    return () => {
-      container.removeEventListener('click', handleClick);
-    };
+    return undefined;
   }, [stores]);
 
   return (

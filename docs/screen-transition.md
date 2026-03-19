@@ -6,10 +6,10 @@ flowchart TD
         HOME["/ トップページ\n在庫検索 + 地図表示"]
         LOGIN["/login ログイン\nGoogle / LINE OAuth"]
         CALLBACK["/login/callback\nOAuth コールバック"]
+        DETAIL["/stores/detail?id=xxx\n店舗詳細 + くじ一覧"]
     end
 
     subgraph Protected["要認証"]
-        DETAIL["/stores/detail?id=xxx\n店舗詳細 + くじ一覧"]
         NOTIFICATIONS["/notifications\nお知らせ（入荷通知）"]
         RESERVATIONS["/reservations\n予約一覧 + 抽選結果"]
         WATCHLIST["/watchlist\nウォッチリスト"]
@@ -33,13 +33,13 @@ flowchart TD
     CALLBACK -- "トークン保存" --> HOME
 
     %% トップページから
-    HOME -- "マーカータップ" --> POPUP{{"ポップアップ\n店舗名 / 残数 / マイ店舗ボタン"}}
+    HOME -- "マーカータップ" --> POPUP{{"ポップアップ\n店舗名 / 残数 / 詳細を見る / マイ店舗ボタン"}}
     POPUP -- "詳細を見る" --> DETAIL
     HOME -- "ベルアイコン" --> NOTIFICATIONS
     HOME -- "ユーザーアイコン" --> MYPAGE
 
     %% 店舗詳細から
-    DETAIL -- "予約する" --> RESERVE_MODAL{{"予約ダイアログ\n引く回数: 1〜3"}}
+    DETAIL -- "購入権利を予約" --> RESERVE_MODAL{{"予約ダイアログ\n引く回数: 1〜3"}}
     RESERVE_MODAL -- "確定" --> RESERVATIONS
     DETAIL -- "ウォッチリスト追加" --> WATCHLIST
 
@@ -75,7 +75,7 @@ flowchart TD
 | トップ（検索） | `/` | 不要 | 景品名検索、地図上に店舗マーカー表示、マイ店舗登録 |
 | ログイン | `/login` | 不要 | Google / LINE OAuth ログイン |
 | OAuthコールバック | `/login/callback` | 不要 | トークン取得・保存後リダイレクト |
-| 店舗詳細 | `/stores/detail?id=xxx` | 必要 | くじ一覧、残数、予約ボタン、ウォッチリスト追加 |
+| 店舗詳細 | `/stores/detail?id=xxx` | 不要（予約時ログイン） | くじ一覧、残数、予約ボタン、ウォッチリスト追加 |
 | お知らせ | `/notifications` | 必要 | マイ店舗の入荷通知・在庫復活通知 |
 | 予約一覧 | `/reservations` | 必要 | 予約状況、抽選結果（当選/落選） |
 | ウォッチリスト | `/watchlist` | 必要 | 気になるくじの通知設定（半径指定） |

@@ -5,6 +5,8 @@ import {
   type User,
   type WatchlistItem,
   type Reservation,
+  type KujiSeries,
+  type Store,
   type ApiResponse,
 } from '@ichiban-kuji/shared';
 import { keys, getItem, putItem, deleteItem, queryItems, queryByGSI } from '../services/dynamodb.js';
@@ -26,6 +28,10 @@ function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyRes
     headers: CORS_HEADERS,
     body: JSON.stringify(body),
   };
+}
+
+function normalizePath(event: APIGatewayProxyEvent): string {
+  return (event.resource ?? event.path).replace(/^\/api\/v1/, '');
 }
 
 // ---------------------------------------------------------------------------
@@ -52,7 +58,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     const method = event.httpMethod;
-    const path = event.resource ?? event.path;
+    const path = normalizePath(event);
 
     // GET /users/me
     if (method === 'GET' && path === '/users/me') {
@@ -69,8 +75,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return await addWatchlistItem(userId, event);
     }
 
-    // DELETE /users/me/watchlist
-    if (method === 'DELETE' && path === '/users/me/watchlist') {
+    // DELETE /users/me/watchlist/{seriesId}
+    if (method === 'DELETE' && path === '/users/me/watchlist/{seriesId}') {
       return await removeWatchlistItem(userId, event);
     }
 
@@ -107,7 +113,24 @@ async function getWatchlist(userId: string): Promise<APIGatewayProxyResult> {
     },
   });
 
-  return jsonResponse(200, { success: true, data: items });
+  const enrichedItems = await Promise.all(
+    items.map(async (item) => {
+      const series = await queryByGSI<KujiSeries & Record<string, unknown>>(
+        GSI.GSI2,
+        'GSI2PK',
+        `${ENTITY_PREFIXES.SERIES}${item.seriesId}`,
+      );
+
+      return {
+        seriesId: item.seriesId,
+        seriesTitle: item.seriesTitle,
+        notifyRadius: item.notifyRadius,
+        releaseDate: series[0]?.releaseDate,
+      };
+    }),
+  );
+
+  return jsonResponse(200, { success: true, data: enrichedItems });
 }
 
 async function addWatchlistItem(
@@ -146,9 +169,9 @@ async function removeWatchlistItem(
   userId: string,
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
-  const seriesId = event.queryStringParameters?.seriesId;
+  const seriesId = event.pathParameters?.seriesId;
   if (!seriesId) {
-    return jsonResponse(400, { success: false, error: 'seriesId query parameter is required' });
+    return jsonResponse(400, { success: false, error: 'seriesId path parameter is required' });
   }
 
   const watchKeys = keys.watchlist(userId, seriesId);
@@ -157,11 +180,37 @@ async function removeWatchlistItem(
 }
 
 async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
-  const items = await queryByGSI<Reservation>(
+  const items = await queryByGSI<Reservation & Record<string, unknown>>(
     GSI.GSI3,
     'GSI3PK',
     `${ENTITY_PREFIXES.USER}${userId}`,
   );
 
-  return jsonResponse(200, { success: true, data: items });
+  const reservations = await Promise.all(
+    items.map(async (item) => {
+      const [store, series] = await Promise.all([
+        getItem<Store & Record<string, unknown>>(keys.store(item.storeId)),
+        getItem<KujiSeries & Record<string, unknown>>(keys.kujiSeries(item.storeId, item.seriesId)),
+      ]);
+
+      return {
+        reservationId:
+          (item.reservationId as string | undefined) ??
+          `${item.storeId}:${item.seriesId}:${userId}`,
+        storeId: item.storeId,
+        storeName: (item.storeName as string | undefined) ?? store?.storeName ?? item.storeId,
+        seriesId: item.seriesId,
+        seriesTitle: (item.seriesTitle as string | undefined) ?? series?.title ?? item.seriesId,
+        drawCount: item.drawCount,
+        status: item.status,
+        createdAt: item.createdAt,
+      };
+    }),
+  );
+
+  reservations.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  return jsonResponse(200, { success: true, data: reservations });
 }

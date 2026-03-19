@@ -145,7 +145,7 @@ export class ApiStack extends cdk.Stack {
 
     // /api/v1/stores/{storeId}
     const storeById = stores.addResource("{storeId}");
-    storeById.addMethod("GET", storesIntegration, authMethodOptions);
+    storeById.addMethod("GET", storesIntegration);
 
     // /api/v1/stores/{storeId}/kuji/{seriesId}/reserve
     const kuji = storeById.addResource("kuji");

@@ -29,6 +29,10 @@ function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyRes
   };
 }
 
+function normalizePath(event: APIGatewayProxyEvent): string {
+  return (event.resource ?? event.path).replace(/^\/api\/v1/, '');
+}
+
 function getUserId(event: APIGatewayProxyEvent): string | null {
   return event.requestContext.authorizer?.claims?.sub ?? null;
 }
@@ -49,7 +53,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     const method = event.httpMethod;
-    const path = event.resource ?? event.path;
+    const path = normalizePath(event);
     const storeId = event.pathParameters?.storeId;
     const seriesId = event.pathParameters?.seriesId;
 
@@ -229,10 +233,10 @@ async function createKujiSeries(
 
   const body = JSON.parse(event.body) as Partial<KujiSeries>;
 
-  if (!body.title || !body.releaseDate || !body.totalTickets || !body.prizes) {
+  if (!body.title || body.price == null || !body.releaseDate || !body.totalTickets || !body.prizes) {
     return jsonResponse(400, {
       success: false,
-      error: 'title, releaseDate, totalTickets, and prizes are required',
+      error: 'title, price, releaseDate, totalTickets, and prizes are required',
     });
   }
 
@@ -245,6 +249,7 @@ async function createKujiSeries(
     storeId,
     seriesId,
     title: body.title,
+    price: body.price,
     releaseDate: body.releaseDate,
     totalTickets: body.totalTickets,
     remainingTickets: body.remainingTickets ?? body.totalTickets,
@@ -287,6 +292,10 @@ async function updateKujiSeries(
   if (body.title) {
     updateExprParts.push('title = :title');
     exprValues[':title'] = body.title;
+  }
+  if (body.price != null) {
+    updateExprParts.push('price = :price');
+    exprValues[':price'] = body.price;
   }
   if (body.releaseDate) {
     updateExprParts.push('releaseDate = :releaseDate');

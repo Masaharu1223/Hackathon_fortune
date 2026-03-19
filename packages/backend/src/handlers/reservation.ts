@@ -1,10 +1,10 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import {
-  ENTITY_PREFIXES,
   MAX_DRAWS_PER_RESERVATION,
   type Reservation,
   type ReservationRequest,
   type KujiSeries,
+  type Store,
   type ApiResponse,
 } from '@ichiban-kuji/shared';
 import { keys, getItem, putItem, updateItem } from '../services/dynamodb.js';
@@ -108,8 +108,8 @@ async function createReservation(
     return jsonResponse(400, { success: false, error: 'Kuji series is not available for reservation' });
   }
 
-  if (series.remainingTickets < drawCount) {
-    return jsonResponse(400, { success: false, error: 'Not enough tickets remaining' });
+  if (series.remainingTickets <= 0) {
+    return jsonResponse(400, { success: false, error: 'Kuji series is sold out' });
   }
 
   // Check for existing pending reservation
@@ -124,11 +124,21 @@ async function createReservation(
   }
 
   // Create reservation
+  const store = await getItem<Store & Record<string, unknown>>(keys.store(storeId));
+  if (!store) {
+    return jsonResponse(404, { success: false, error: 'Store not found' });
+  }
+
+  // Reservation only records the user's entry; inventory is consumed during the lottery run.
   const now = new Date().toISOString();
+  const reservationId = `${storeId}:${seriesId}:${userId}`;
   const reservation: Reservation & Record<string, unknown> = {
     ...resKeys,
+    reservationId,
     storeId,
+    storeName: store.storeName,
     seriesId,
+    seriesTitle: series.title,
     userId,
     drawCount,
     status: 'pending',

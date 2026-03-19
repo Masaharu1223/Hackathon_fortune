@@ -14,8 +14,8 @@ export default function LoginPage() {
     <div className="flex min-h-[60vh] flex-col items-center justify-center">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-indigo-600">一番くじナビ</h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <h1 className="text-3xl font-bold text-brand">一番くじナビ</h1>
+          <p className="mt-2 text-sm text-content-muted">
             ログインして予約やウォッチリストを利用しましょう
           </p>
         </div>
@@ -23,7 +23,7 @@ export default function LoginPage() {
         <div className="space-y-3">
           <a
             href={getGoogleLoginUrl()}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+            className="ui-card flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-content shadow-sm transition-colors hover:bg-brand-soft"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
           <a
             href={getLineLoginUrl()}
-            className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#06C755] px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#05b54d]"
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-brand px-4 py-3 text-sm font-medium text-on-brand shadow-sm transition-colors hover:bg-brand-hover"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
@@ -57,7 +57,7 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <p className="mt-6 text-center text-xs text-gray-400">
+        <p className="mt-6 text-center text-xs text-content-subtle">
           ログインすることで利用規約とプライバシーポリシーに同意したものとみなされます
         </p>
       </div>

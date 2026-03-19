@@ -30,6 +30,10 @@ function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyRes
   };
 }
 
+function normalizePath(event: APIGatewayProxyEvent): string {
+  return (event.resource ?? event.path).replace(/^\/api\/v1/, '');
+}
+
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
@@ -41,7 +45,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
   try {
     const method = event.httpMethod;
-    const path = event.resource ?? event.path;
+    const path = normalizePath(event);
 
     // GET /stores/nearby
     if (method === 'GET' && path === '/stores/nearby') {
