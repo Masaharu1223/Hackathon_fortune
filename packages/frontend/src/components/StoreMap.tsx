@@ -3,11 +3,10 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { isMyStore, addMyStore, removeMyStore } from '@/lib/myStores';
 
 export interface MapStore {
-  store_id: string;
-  name: string;
+  storeId: string;
+  storeName: string;
   address: string;
   lat: number;
   lng: number;
@@ -81,23 +80,18 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
         .map((p) => `<span class="store-map-prize">${p}</span>`)
         .join('');
 
-      const isMy = isMyStore(store.store_id);
-      const btnLabel = isMy ? 'マイ店舗から解除' : 'マイ店舗に追加';
-      const btnClass = isMy
-        ? 'my-store-btn store-map-button store-map-button--remove'
-        : 'my-store-btn store-map-button store-map-button--add';
-
       const popup = L.popup({ closeButton: false }).setContent(
         `<div class="store-map-popup">
-          <div class="store-map-name">${store.name}</div>
+          <div class="store-map-name">${store.storeName}</div>
           <div class="store-map-address">${store.address}</div>
           <div class="store-map-remaining">残り ${store.remainingTickets} 枚</div>
           <div class="store-map-prizes">${prizesHtml}</div>
-          <button
-            data-store-id="${store.store_id}"
-            data-action="${isMy ? 'remove' : 'add'}"
-            class="${btnClass}"
-          >${btnLabel}</button>
+          <div class="store-map-actions">
+            <a
+              href="/stores/detail/?id=${store.storeId}"
+              class="store-map-button store-map-button--detail"
+            >店舗の詳細</a>
+          </div>
         </div>`,
       );
 
@@ -106,38 +100,13 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
       markersRef.current!.addLayer(marker);
     });
 
-    // マイ店舗ボタンのクリックハンドラ
-    const container = mapRef.current.getContainer();
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.classList.contains('my-store-btn')) return;
-      const storeId = target.getAttribute('data-store-id');
-      const action = target.getAttribute('data-action');
-      if (!storeId) return;
-
-      if (action === 'add') {
-        addMyStore(storeId);
-        target.textContent = 'マイ店舗から解除';
-        target.setAttribute('data-action', 'remove');
-        target.className = 'my-store-btn store-map-button store-map-button--remove';
-      } else {
-        removeMyStore(storeId);
-        target.textContent = 'マイ店舗に追加';
-        target.setAttribute('data-action', 'add');
-        target.className = 'my-store-btn store-map-button store-map-button--add';
-      }
-    };
-    container.addEventListener('click', handleClick);
-
     // 全マーカーが収まるようにフィット
     if (stores.length > 0) {
       const bounds = L.latLngBounds(stores.map((s) => [s.lat, s.lng]));
       mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
 
-    return () => {
-      container.removeEventListener('click', handleClick);
-    };
+    return undefined;
   }, [stores]);
 
   return (

@@ -28,9 +28,9 @@ export default function MyPage() {
     <div className="space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-content-strong">マイページ</h1>
-        <p className="mt-1 text-sm text-content-muted">
+        {/* <p className="mt-1 text-sm text-content-muted">
           アカウント設定と各種履歴の確認
-        </p>
+        </p> */}
       </div>
 
       <div className="grid gap-4">
@@ -46,7 +46,7 @@ export default function MyPage() {
             </div>
             <div>
               <h2 className="font-semibold text-content-strong">ウォッチリスト</h2>
-              <p className="text-xs text-content-muted">気になるくじシリーズの管理</p>
+              {/* <p className="text-xs text-content-muted">気になるくじシリーズの管理</p> */}
             </div>
           </div>
           <svg className="h-5 w-5 text-content-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@ export default function MyPage() {
             </div>
             <div>
               <h2 className="font-semibold text-content-strong">予約一覧</h2>
-              <p className="text-xs text-content-muted">現在の予約状況の確認</p>
+              {/* <p className="text-xs text-content-muted">現在の予約状況の確認</p> */}
             </div>
           </div>
           <svg className="h-5 w-5 text-content-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">

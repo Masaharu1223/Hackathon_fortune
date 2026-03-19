@@ -1,18 +1,212 @@
-export default function KujiPage() {
+import Link from 'next/link';
+import type { KujiSeries } from '@/lib/api';
+import { MOCK_STORES } from '@/lib/mockData';
+
+type KujiListing = {
+  storeId: string;
+  storeName: string;
+  address: string;
+  distanceKm?: number;
+  series: KujiSeries;
+};
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatDistance(distanceKm?: number): string | null {
+  if (distanceKm === undefined) return null;
+
+  if (distanceKm < 1) {
+    return `${Math.round(distanceKm * 1000)}m`;
+  }
+
+  return `${distanceKm.toFixed(1)}km`;
+}
+
+function prizePreview(prizes: KujiSeries['prizes']): string {
+  return prizes
+    .slice(0, 3)
+    .map((prize) => `${prize.rank}賞 ${prize.name}`)
+    .join(' / ');
+}
+
+function KujiListingCard({
+  listing,
+  variant,
+}: {
+  listing: KujiListing;
+  variant: 'upcoming' | 'on_sale';
+}) {
+  const { series } = listing;
+  const distance = formatDistance(listing.distanceKm);
+
   return (
-    <div className="flex flex-col items-center justify-center pb-20" style={{ height: 'calc(100dvh - 52px - 60px)' }}>
-      <div className="mb-5 rounded-2xl bg-brand-soft p-5">
-        <svg className="h-12 w-12 text-brand" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
-        </svg>
+    <article
+      className={`ui-card rounded-2xl p-5 shadow-sm ${
+        variant === 'upcoming' ? 'border-brand-border bg-gradient-to-br from-surface to-brand-soft/70' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-content-subtle">1回 {series.price}円</p>
+
+          <h2 className="mt-2 text-lg font-semibold leading-7 text-content-strong">
+            {series.title}
+          </h2>
+
+          <p className="mt-1 text-sm font-medium text-content">
+            {listing.storeName}
+          </p>
+          <p className="mt-0.5 text-sm text-content-muted">{listing.address}</p>
+        </div>
+
+        {distance && (
+          <span className="ui-badge ui-badge-neutral shrink-0 px-2.5 py-1 text-xs">
+            {distance}
+          </span>
+        )}
       </div>
-      <h1 className="mb-2 text-xl font-bold text-content-strong">一番くじ</h1>
-      <p className="text-center text-sm text-content-subtle">
-        最新の一番くじ情報を<br />まもなくお届けします
-      </p>
-      <span className="ui-badge ui-badge-neutral mt-4 px-4 py-1.5 text-xs">
-        Coming Soon
-      </span>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div
+          className={`rounded-xl px-4 py-3 ${
+            variant === 'upcoming' ? 'bg-white/70' : 'bg-success-soft'
+          }`}
+        >
+          <p className="text-xs font-medium tracking-[0.16em] text-content-subtle">
+            {variant === 'upcoming' ? '発売日' : '発売中：残り枚数'}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-content-strong">
+            {variant === 'upcoming'
+              ? formatDate(series.releaseDate)
+              : `${series.remainingTickets} / ${series.totalTickets}枚`}
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-white/70 px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-content-subtle">
+            {variant === 'upcoming' ? '予約条件' : '発売日'}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-content-strong">
+            {variant === 'upcoming' ? '最大3枚まで予約可' : formatDate(series.releaseDate)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl bg-background/80 px-4 py-3">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-content-subtle">
+          注目賞品
+        </p>
+        <p className="mt-1 text-sm leading-6 text-content">
+          {series.prizes.length > 0 ? prizePreview(series.prizes) : '賞品情報は準備中です'}
+        </p>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        {variant === 'upcoming' ? (
+          <div className="rounded-full bg-brand-soft/70 px-3 py-1.5 text-xs text-content-muted">
+            抽選予約受付中
+          </div>
+        ) : (
+          <div />
+        )}
+
+        <Link
+          href={`/stores/detail/?id=${listing.storeId}`}
+          className="ui-button-primary shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors"
+        >
+          店舗の詳細へ
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+export default function KujiPage() {
+  const listings: KujiListing[] = MOCK_STORES.flatMap((store) =>
+    store.series.map((series) => ({
+      storeId: store.storeId,
+      storeName: store.storeName,
+      address: store.address,
+      distanceKm: store.distanceKm,
+      series,
+    })),
+  );
+
+  const lotteryListings = listings
+    .filter((listing) => listing.series.status === 'upcoming')
+    .sort((a, b) => a.series.releaseDate.localeCompare(b.series.releaseDate));
+
+  const onSaleListings = listings
+    .filter((listing) => listing.series.status === 'on_sale')
+    .sort((a, b) => a.series.remainingTickets - b.series.remainingTickets);
+
+  return (
+    <div className="space-y-8 pb-24">
+      <section>
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <h2 className="text-xl font-semibold text-content-strong">
+            発売予定
+          </h2>
+          <span className="ui-badge ui-badge-brand px-3 py-1 text-xs">
+            {lotteryListings.length}件
+          </span>
+        </div>
+
+        {lotteryListings.length > 0 ? (
+          <div className="space-y-4">
+            {lotteryListings.map((listing) => (
+              <KujiListingCard
+                key={`${listing.storeId}-${listing.series.seriesId}`}
+                listing={listing}
+                variant="upcoming"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="ui-panel-muted rounded-2xl p-6 text-center">
+            <p className="text-sm text-content-muted">
+              抽選対象のくじはまだありません
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-content-strong">
+              いま販売中のくじ
+            </h2>
+            <p className="mt-1 text-sm text-content-muted">
+              現在販売中のくじも合わせて確認できます。
+            </p>
+          </div>
+          <span className="ui-badge ui-badge-success px-3 py-1 text-xs">
+            {onSaleListings.length}件
+          </span>
+        </div>
+
+        {onSaleListings.length > 0 ? (
+          <div className="space-y-4">
+            {onSaleListings.map((listing) => (
+              <KujiListingCard
+                key={`${listing.storeId}-${listing.series.seriesId}`}
+                listing={listing}
+                variant="on_sale"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="ui-panel-muted rounded-2xl p-6 text-center">
+            <p className="text-sm text-content-muted">
+              販売中のくじはまだありません
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

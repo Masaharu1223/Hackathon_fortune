@@ -32,7 +32,7 @@ export default function WatchlistPage() {
     if (!confirm('ウォッチリストから削除しますか？')) return;
     try {
       await removeFromWatchlist(seriesId);
-      setItems((prev) => prev.filter((item) => item.series_id !== seriesId));
+      setItems((prev) => prev.filter((item) => item.seriesId !== seriesId));
     } catch {
       alert('削除に失敗しました。');
     }
@@ -77,25 +77,27 @@ export default function WatchlistPage() {
         <div className="space-y-3">
           {items.map((item) => (
             <div
-              key={item.series_id}
+              key={item.seriesId}
               className="ui-card rounded-xl p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <h3 className="text-base font-semibold text-content-strong truncate">
-                    {item.title}
+                    {item.seriesTitle}
                   </h3>
-                  <p className="mt-1 text-sm text-content-muted">
-                    発売日: {new Date(item.release_date).toLocaleDateString('ja-JP')}
-                  </p>
+                  {item.releaseDate && (
+                    <p className="mt-1 text-sm text-content-muted">
+                      発売日: {new Date(item.releaseDate).toLocaleDateString('ja-JP')}
+                    </p>
+                  )}
                   <div className="mt-2 flex items-center gap-2">
                     <span className="ui-badge ui-badge-brand px-2.5 py-0.5 text-xs">
-                      通知範囲: {item.notification_radius_km}km
+                      通知範囲: {item.notifyRadius}km
                     </span>
                   </div>
                 </div>
                 <button
-                  onClick={() => handleRemove(item.series_id)}
+                  onClick={() => handleRemove(item.seriesId)}
                   className="ui-button-danger shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
                 >
                   削除

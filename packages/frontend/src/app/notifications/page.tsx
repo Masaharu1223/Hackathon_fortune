@@ -27,10 +27,7 @@ export default function NotificationsPage() {
         </div>
         <p className="text-base font-semibold text-content">お知らせはありません</p>
         <p className="mt-2 text-sm text-content-muted">
-          マイ店舗を登録すると<br />入荷情報のお知らせが届きます
-        </p>
-        <p className="mt-4 text-xs text-content-subtle">
-          地図のマーカーをタップして<br />「マイ店舗に追加」から登録できます
+          通知対象の店舗がまだないため<br />表示できるお知らせがありません
         </p>
       </div>
     );

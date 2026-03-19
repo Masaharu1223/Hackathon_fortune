@@ -65,7 +65,7 @@ export default function ReservationsPage() {
       await cancelReservation(storeId, seriesId);
       setReservations((prev) =>
         prev.map((r) =>
-          r.store_id === storeId && r.series_id === seriesId
+          r.storeId === storeId && r.seriesId === seriesId
             ? { ...r, status: 'cancelled' as const }
             : r
         )
@@ -110,26 +110,26 @@ export default function ReservationsPage() {
         <div className="space-y-3">
           {reservations.map((r) => (
             <div
-              key={r.reservation_id}
+              key={r.reservationId}
               className="ui-card rounded-xl p-4 shadow-sm"
             >
               <div className="mb-2 flex items-start justify-between gap-2">
                 <h3 className="text-base font-semibold text-content-strong truncate">
-                  {r.series_title}
+                  {r.seriesTitle}
                 </h3>
                 {statusLabel(r.status)}
               </div>
-              <p className="text-sm text-content-muted">{r.store_name}</p>
+              <p className="text-sm text-content-muted">{r.storeName}</p>
               <div className="mt-2 flex items-center justify-between text-sm">
                 <div className="text-content-muted">
-                  <span>引く回数: {r.draw_count}回</span>
+                  <span>引く回数: {r.drawCount}回</span>
                   <span className="ml-3">
-                    {new Date(r.created_at).toLocaleDateString('ja-JP')}
+                    {new Date(r.createdAt).toLocaleDateString('ja-JP')}
                   </span>
                 </div>
                 {r.status === 'pending' && (
                   <button
-                    onClick={() => handleCancel(r.store_id, r.series_id)}
+                    onClick={() => handleCancel(r.storeId, r.seriesId)}
                     className="ui-button-danger rounded-lg px-3 py-1 text-xs font-medium transition-colors"
                   >
                     キャンセル

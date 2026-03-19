@@ -25,6 +25,7 @@ export interface KujiSeries {
   storeId: string;
   seriesId: string;
   title: string;
+  price: number;
   releaseDate: string;
   totalTickets: number;
   remainingTickets: number;

@@ -35,19 +35,19 @@ interface StoreCardProps {
 export default function StoreCard({ store }: StoreCardProps) {
   return (
     <Link
-      href={`/stores/detail/?id=${store.store_id}`}
+      href={`/stores/detail/?id=${store.storeId}`}
       className="ui-card block rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-2 flex items-start justify-between">
         <div>
-          <h3 className="text-base font-semibold text-content-strong">{store.name}</h3>
+          <h3 className="text-base font-semibold text-content-strong">{store.storeName}</h3>
           <p className="mt-0.5 text-sm text-content-muted">{store.address}</p>
         </div>
-        {store.distance_km !== undefined && (
+        {store.distanceKm !== undefined && (
           <span className="ui-badge ui-badge-brand shrink-0 px-2.5 py-1 text-xs">
-            {store.distance_km < 1
-              ? `${Math.round(store.distance_km * 1000)}m`
-              : `${store.distance_km.toFixed(1)}km`}
+            {store.distanceKm < 1
+              ? `${Math.round(store.distanceKm * 1000)}m`
+              : `${store.distanceKm.toFixed(1)}km`}
           </span>
         )}
       </div>
@@ -56,7 +56,7 @@ export default function StoreCard({ store }: StoreCardProps) {
         <div className="mt-3 flex flex-wrap gap-1.5">
           {store.series.map((s) => (
             <div
-              key={s.series_id}
+              key={s.seriesId}
               className="flex items-center gap-1.5 rounded-lg bg-brand-soft px-2.5 py-1.5 text-xs text-content"
             >
               <span className="truncate max-w-[140px]">{s.title}</span>

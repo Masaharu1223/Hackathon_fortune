@@ -14,6 +14,7 @@ interface StoreForm {
 interface SeriesForm {
   store_id: string;
   title: string;
+  price: string;
   release_date: string;
   total_tickets: string;
   prizes: string;
@@ -47,6 +48,7 @@ export default function AdminPage() {
   const [seriesForm, setSeriesForm] = useState<SeriesForm>({
     store_id: '',
     title: '',
+    price: '',
     release_date: '',
     total_tickets: '',
     prizes: '',
@@ -67,7 +69,7 @@ export default function AdminPage() {
     setMessage(null);
     try {
       await adminRequest('/admin/stores', {
-        name: storeForm.name,
+        storeName: storeForm.name,
         address: storeForm.address,
         lat: parseFloat(storeForm.lat),
         lng: parseFloat(storeForm.lng),
@@ -90,15 +92,15 @@ export default function AdminPage() {
         setMessage({ type: 'error', text: '賞品のJSON形式が正しくありません' });
         return;
       }
-      await adminRequest('/admin/series', {
-        store_id: seriesForm.store_id,
+      await adminRequest(`/admin/stores/${seriesForm.store_id}/kuji`, {
         title: seriesForm.title,
-        release_date: seriesForm.release_date,
-        total_tickets: parseInt(seriesForm.total_tickets, 10),
+        price: parseInt(seriesForm.price, 10),
+        releaseDate: seriesForm.release_date,
+        totalTickets: parseInt(seriesForm.total_tickets, 10),
         prizes,
       });
       setMessage({ type: 'success', text: 'くじシリーズを登録しました' });
-      setSeriesForm({ store_id: '', title: '', release_date: '', total_tickets: '', prizes: '' });
+      setSeriesForm({ store_id: '', title: '', price: '', release_date: '', total_tickets: '', prizes: '' });
     } catch {
       setMessage({ type: 'error', text: 'くじシリーズの登録に失敗しました' });
     }
@@ -233,6 +235,17 @@ export default function AdminPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>価格</label>
+              <input
+                type="number"
+                className={inputClass}
+                placeholder="790"
+                value={seriesForm.price}
+                onChange={(e) => setSeriesForm({ ...seriesForm, price: e.target.value })}
+                required
+              />
+            </div>
             <div>
               <label className={labelClass}>発売日</label>
               <input

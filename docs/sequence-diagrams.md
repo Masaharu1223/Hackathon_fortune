@@ -96,7 +96,7 @@ sequenceDiagram
     participant Lambda as Lambda<br/>(Reservation)
     participant DDB as DynamoDB
 
-    User->>FE: 店舗詳細ページで「予約する」タップ
+    User->>FE: 店舗詳細ページで「購入権利を予約」タップ
     FE->>User: 引く回数ダイアログ (1〜3枚)
     User->>FE: 回数を選択して確定
 
@@ -106,10 +106,8 @@ sequenceDiagram
     Lambda->>DDB: GetItem(STORE#{storeId}, KUJI#{seriesId})
     DDB-->>Lambda: くじシリーズ情報
 
-    alt シリーズが販売中でない
+    alt シリーズが販売中でない / 完売
         Lambda-->>FE: 400 "この一番くじは現在予約できません"
-    else 残りチケット不足
-        Lambda-->>FE: 400 "残りチケットが不足しています"
     end
 
     Lambda->>DDB: GetItem(STORE#...#KUJI#..., RESERVATION#{userId})
@@ -119,18 +117,9 @@ sequenceDiagram
         Lambda-->>FE: 409 "既に予約済みです"
     end
 
-    Lambda->>DDB: UpdateItem(KUJI#{seriesId})<br/>SET remainingTickets = remainingTickets - :drawCount<br/>ConditionExpression: remainingTickets >= :drawCount
-    Note over Lambda,DDB: アトミック操作で<br/>チケット超過販売を防止
-
-    alt ConditionExpression 失敗
-        DDB-->>Lambda: ConditionalCheckFailedException
-        Lambda-->>FE: 409 "チケットが確保できませんでした"
-    end
-
-    DDB-->>Lambda: 更新成功
-
     Lambda->>DDB: PutItem(RESERVATION#{userId})<br/>status: pending, drawCount: 2
     DDB-->>Lambda: OK
+    Note over Lambda,DDB: この時点では remainingTickets は減らさない<br/>在庫消費は日次抽選で行う
 
     Lambda-->>APIGW: 201 { reservation }
     APIGW-->>FE: レスポンス

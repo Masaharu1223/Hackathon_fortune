@@ -3,15 +3,16 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { MOCK_STORES } from '@/lib/mockData';
+import { getNearbyStores, type Store } from '@/lib/api';
 import type { MapStore } from '@/components/StoreMap';
 
 // Leafletはwindow依存なので動的インポート
 const StoreMap = dynamic(() => import('@/components/StoreMap'), { ssr: false });
 
 // 全景品名を抽出（検索候補用）
-function getAllPrizeNames(): string[] {
+function getAllPrizeNames(stores: Store[]): string[] {
   const names = new Set<string>();
-  MOCK_STORES.forEach((store) =>
+  stores.forEach((store) =>
     store.series.forEach((s) =>
       s.prizes.forEach((p) => {
         names.add(p.name);
@@ -22,35 +23,38 @@ function getAllPrizeNames(): string[] {
   return Array.from(names);
 }
 
-function searchStores(query: string): MapStore[] {
+function searchStores(stores: Store[], query: string): MapStore[] {
   if (!query.trim()) return [];
 
   const q = query.toLowerCase();
   const results: MapStore[] = [];
 
-  MOCK_STORES.forEach((store) => {
+  stores.forEach((store) => {
     const matchedPrizes: string[] = [];
     let totalRemaining = 0;
 
     store.series.forEach((series) => {
-      if (series.status === 'sold_out') return;
+      if (series.status === 'sold_out' || series.remainingTickets <= 0) return;
 
       // くじタイトルまたは景品名にマッチ
       const titleMatch = series.title.toLowerCase().includes(q);
+      const seriesMatches: string[] = [];
       series.prizes.forEach((prize) => {
         if (titleMatch || prize.name.toLowerCase().includes(q)) {
-          if (prize.remaining > 0) {
-            matchedPrizes.push(`${prize.rank}賞 ${prize.name}`);
-            totalRemaining += prize.remaining;
-          }
+          seriesMatches.push(`${prize.rank}賞 ${prize.name}`);
         }
       });
+
+      if (seriesMatches.length > 0) {
+        matchedPrizes.push(...seriesMatches);
+        totalRemaining += series.remainingTickets;
+      }
     });
 
     if (matchedPrizes.length > 0) {
       results.push({
-        store_id: store.store_id,
-        name: store.name,
+        storeId: store.storeId,
+        storeName: store.storeName,
         address: store.address,
         lat: store.lat,
         lng: store.lng,
@@ -68,8 +72,33 @@ export default function Home() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [center, setCenter] = useState({ lat: 35.6595, lng: 139.7004 }); // 渋谷デフォルト
+  const [stores, setStores] = useState<Store[]>([]);
+  const [usingMockData, setUsingMockData] = useState(false);
 
-  const allPrizes = useMemo(() => getAllPrizeNames(), []);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchNearbyStores() {
+      try {
+        const data = await getNearbyStores(center.lat, center.lng);
+        if (cancelled) return;
+        setStores(data);
+        setUsingMockData(false);
+      } catch {
+        if (cancelled) return;
+        setStores(MOCK_STORES);
+        setUsingMockData(true);
+      }
+    }
+
+    fetchNearbyStores();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [center.lat, center.lng]);
+
+  const allPrizes = useMemo(() => getAllPrizeNames(stores), [stores]);
 
   // 位置情報取得
   useEffect(() => {
@@ -87,7 +116,7 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const results = useMemo(() => searchStores(debouncedQuery), [debouncedQuery]);
+  const results = useMemo(() => searchStores(stores, debouncedQuery), [debouncedQuery, stores]);
 
   const suggestions = useMemo(() => {
     if (!query.trim() || query.length < 1) return [];
@@ -164,6 +193,11 @@ export default function Home() {
               ? `${results.length}店舗で在庫あり`
               : '在庫が見つかりませんでした'}
           </span>
+          {usingMockData && (
+            <span className="ui-badge ui-badge-neutral px-2 py-0.5 text-xs">
+              モック表示
+            </span>
+          )}
           {results.length > 0 && (
             <span className="ui-badge ui-badge-brand px-2 py-0.5 text-xs">
               残り合計 {results.reduce((n, s) => n + s.remainingTickets, 0)} 個
