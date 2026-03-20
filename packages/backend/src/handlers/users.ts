@@ -187,28 +187,29 @@ async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
     'GSI3PK',
     `${ENTITY_PREFIXES.USER}${userId}`,
   );
+const reservations = items.map((item) => {
+    return {
+      reservationId:
+        (item.reservationId as string | undefined) ?? `${item.storeId}:${item.seriesId}:${userId}`,
+      storeId: item.storeId,
+      storeName: (item.storeName as string | undefined) ?? item.storeId,
+      seriesId: item.seriesId,
+      seriesTitle: (item.seriesTitle as string | undefined) ?? item.seriesId,
+      drawCount: item.drawCount,
+      status: item.status,
+      createdAt: item.createdAt,
+    };
+  });
 
-  const reservations = await Promise.all(
-    items.map(async (item) => {
-      const [store, series] = await Promise.all([
-        getItem<Store & Record<string, unknown>>(keys.store(item.storeId)),
-        getItem<KujiSeries & Record<string, unknown>>(keys.kujiSeries(item.storeId, item.seriesId)),
-      ]);
+  reservations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      return {
-        reservationId:
-          (item.reservationId as string | undefined) ??
-          `${item.storeId}:${item.seriesId}:${userId}`,
-        storeId: item.storeId,
-        storeName: (item.storeName as string | undefined) ?? store?.storeName ?? item.storeId,
-        seriesId: item.seriesId,
-        seriesTitle: (item.seriesTitle as string | undefined) ?? series?.title ?? item.seriesId,
-        drawCount: item.drawCount,
-        status: item.status,
-        createdAt: item.createdAt,
-      };
-    }),
-  );
+  return jsonResponse(200, { success: true, data: reservations });
+}
+
+
+
+
+     
 
   reservations.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
