@@ -91,7 +91,7 @@ export async function getItem<T = Record<string, unknown>>(
 ): Promise<T | undefined> {
   const params: GetCommandInput = {
     TableName: TABLE_NAME,
-    Key: key,
+    Key: { PK: key.PK, SK: key.SK },
   };
   const result = await ddbDoc.send(new GetCommand(params));
   return result.Item as T | undefined;
