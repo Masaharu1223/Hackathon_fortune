@@ -19,8 +19,8 @@ const NAV_ITEMS = [
     icon: () => (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g clipPath="url(#clip_kuji)">
-          <path d="M10 4L19.5263 14.5H0.473721L10 4Z" fill="currentColor" />
-          <path d="M19.1591 7.0369L22.9682 20.3436L6.09854 11.6195L19.1591 7.0369Z" fill="currentColor" />
+          <path d="M19.1875 14.3496H0.8125L10 4.22266L19.1875 14.3496Z" stroke="currentColor" strokeWidth="0.3" />
+          <path d="M22.7282 20.0506L6.47601 11.6458L19.0589 7.23024L22.7282 20.0506Z" fill="currentColor" stroke="currentColor" strokeWidth="0.3" />
         </g>
         <defs>
           <clipPath id="clip_kuji">
