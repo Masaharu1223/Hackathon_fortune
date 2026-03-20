@@ -30,6 +30,8 @@ interface KujiCardProps {
   series: KujiSeries;
   storeId?: string;
   onReserve?: (series: KujiSeries) => void;
+  isReserved?: boolean;
+  reservationPending?: boolean;
   isWatchlisted?: boolean;
   isWatchlistPending?: boolean;
   onToggleWatchlist?: (series: KujiSeries) => void;
@@ -38,6 +40,8 @@ interface KujiCardProps {
 export default function KujiCard({
   series,
   onReserve,
+  isReserved = false,
+  reservationPending = false,
   isWatchlisted = false,
   isWatchlistPending = false,
   onToggleWatchlist,
@@ -128,7 +132,11 @@ export default function KujiCard({
         </div>
       )}
 
-      {series.status === 'upcoming' && onReserve && (
+      {series.status === 'upcoming' && reservationPending && (
+        <div className="h-10 w-full animate-pulse rounded-lg bg-surface" />
+      )}
+
+      {series.status === 'upcoming' && !reservationPending && (onReserve || isReserved) && (
         <div className="flex items-center gap-2">
           {showWatchlistButton && (
             <button
@@ -158,12 +166,23 @@ export default function KujiCard({
               </svg>
             </button>
           )}
-          <button
-            onClick={() => onReserve(series)}
-            className="ui-button-primary w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-          >
-            購入権利を予約
-          </button>
+          {isReserved ? (
+            <a
+              href="/reservations/"
+              className="block w-full rounded-lg bg-gray-500 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-gray-600"
+            >
+              予約内容を確認
+            </a>
+          ) : (
+            onReserve && (
+              <button
+                onClick={() => onReserve(series)}
+                className="ui-button-primary w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+              >
+                購入権利を予約
+              </button>
+            )
+          )}
         </div>
       )}
     </div>
