@@ -180,17 +180,25 @@ async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
       if (!storeName || !seriesTitle) {
         const [store, series] = await Promise.all([
           !storeName ? getItem<Store>(keys.store(item.storeId)) : Promise.resolve(null),
-          !seriesTitle ? getItem<KujiSeries>(keys.kujiSeries(item.storeId, item.seriesId)) : Promise.resolve(null),
+          !seriesTitle
+            ? getItem<KujiSeries>(keys.kujiSeries(item.storeId, item.seriesId))
+            : Promise.resolve(null),
         ]);
+
         storeName = storeName ?? store?.storeName ?? item.storeId;
         seriesTitle = seriesTitle ?? series?.title ?? item.seriesId;
       }
 
       return {
-        ...item,
-        reservationId: item.reservationId ?? `${item.storeId}:${item.seriesId}:${userId}`,
+        reservationId:
+          item.reservationId ?? `${item.storeId}:${item.seriesId}:${userId}`,
+        storeId: item.storeId,
         storeName,
+        seriesId: item.seriesId,
         seriesTitle,
+        drawCount: item.drawCount,
+        status: item.status,
+        createdAt: item.createdAt,
       };
     }),
   );
