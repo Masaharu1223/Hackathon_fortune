@@ -190,7 +190,8 @@ async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
 const reservations = items.map((item) => {
     return {
       reservationId:
-        (item.reservationId as string | undefined) ?? `${item.storeId}:${item.seriesId}:${userId}`,
+        (item.reservationId as string | undefined) ??
+        `${item.storeId}:${item.seriesId}:${userId}`,
       storeId: item.storeId,
       storeName: (item.storeName as string | undefined) ?? item.storeId,
       seriesId: item.seriesId,
