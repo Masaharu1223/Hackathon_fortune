@@ -2,9 +2,11 @@ import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
-import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
+import * as path from "path";
 
 interface SchedulerStackProps extends cdk.StackProps {
   mainTable: dynamodb.Table;
@@ -18,18 +20,22 @@ export class SchedulerStack extends cdk.Stack {
 
     const { mainTable, geoTable, notificationQueue } = props;
 
+    const backendSrc = path.join(__dirname, "../../../packages/backend/src");
+
     // ── Lottery Lambda ─────────────────────────────────────────────────
-    const lotteryHandler = new lambda.Function(this, "LotteryHandler", {
+    const lotteryHandler = new NodejsFunction(this, "LotteryHandler", {
       functionName: `${id}-LotteryHandler`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      code: lambda.Code.fromAsset("../packages/backend/dist"),
-      handler: "handlers/lottery.handler",
+      runtime: Runtime.NODEJS_20_X,
+      entry: path.join(backendSrc, "handlers/lottery.ts"),
       memorySize: 512,
       timeout: cdk.Duration.minutes(5),
       environment: {
         TABLE_NAME: mainTable.tableName,
         GEO_TABLE_NAME: geoTable.tableName,
         NOTIFICATION_QUEUE_URL: notificationQueue.queueUrl,
+      },
+      bundling: {
+        externalModules: ["@aws-sdk/*"],
       },
     });
 

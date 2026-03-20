@@ -1,9 +1,11 @@
 import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
+import * as path from "path";
 
 interface NotificationStackProps extends cdk.StackProps {
   mainTable: dynamodb.Table;
@@ -16,6 +18,8 @@ export class NotificationStack extends cdk.Stack {
     super(scope, id, props);
 
     const { mainTable } = props;
+
+    const backendSrc = path.join(__dirname, "../../../packages/backend/src");
 
     // ── Dead-letter queue ──────────────────────────────────────────────
     const dlq = new sqs.Queue(this, "NotificationDLQ", {
@@ -34,18 +38,20 @@ export class NotificationStack extends cdk.Stack {
     });
 
     // ── Notification Lambda ────────────────────────────────────────────
-    const notificationHandler = new lambda.Function(
+    const notificationHandler = new NodejsFunction(
       this,
       "NotificationHandler",
       {
         functionName: `${id}-NotificationHandler`,
-        runtime: lambda.Runtime.NODEJS_20_X,
-        code: lambda.Code.fromAsset("../packages/backend/dist"),
-        handler: "handlers/notification.handler",
+        runtime: Runtime.NODEJS_20_X,
+        entry: path.join(backendSrc, "handlers/notification.ts"),
         memorySize: 256,
         timeout: cdk.Duration.seconds(30),
         environment: {
           TABLE_NAME: mainTable.tableName,
+        },
+        bundling: {
+          externalModules: ["@aws-sdk/*"],
         },
       },
     );

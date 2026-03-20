@@ -1,14 +1,13 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
+import * as path from "path";
 
 interface ApiStackProps extends cdk.StackProps {
-  userPool: cognito.UserPool;
-  userPoolClient: cognito.UserPoolClient;
   mainTable: dynamodb.Table;
   geoTable: dynamodb.Table;
   notificationQueue: sqs.Queue;
@@ -20,50 +19,49 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
-    const { userPool, mainTable, geoTable, notificationQueue } = props;
+    const { mainTable, geoTable, notificationQueue } = props;
 
-    // ── Shared Lambda props ────────────────────────────────────────────
     const commonEnv: Record<string, string> = {
       TABLE_NAME: mainTable.tableName,
       GEO_TABLE_NAME: geoTable.tableName,
       NOTIFICATION_QUEUE_URL: notificationQueue.queueUrl,
     };
 
-    const sharedLambdaProps: Omit<lambda.FunctionProps, "handler" | "functionName"> = {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      code: lambda.Code.fromAsset("../packages/backend/dist"),
+    const backendSrc = path.join(__dirname, "../../../packages/backend/src");
+
+    const nodejsFnProps = {
+      runtime: Runtime.NODEJS_20_X,
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: commonEnv,
+      bundling: {
+        externalModules: ["@aws-sdk/*"],
+      },
     };
 
     // ── Lambda Functions ───────────────────────────────────────────────
-    const usersHandler = new lambda.Function(this, "UsersHandler", {
-      ...sharedLambdaProps,
+    const usersHandler = new NodejsFunction(this, "UsersHandler", {
+      ...nodejsFnProps,
       functionName: `${id}-UsersHandler`,
-      handler: "handlers/users.handler",
+      entry: path.join(backendSrc, "handlers/users.ts"),
     });
 
-    const storesHandler = new lambda.Function(this, "StoresHandler", {
-      ...sharedLambdaProps,
+    const storesHandler = new NodejsFunction(this, "StoresHandler", {
+      ...nodejsFnProps,
       functionName: `${id}-StoresHandler`,
-      handler: "handlers/stores.handler",
+      entry: path.join(backendSrc, "handlers/stores.ts"),
     });
 
-    const reservationHandler = new lambda.Function(
-      this,
-      "ReservationHandler",
-      {
-        ...sharedLambdaProps,
-        functionName: `${id}-ReservationHandler`,
-        handler: "handlers/reservation.handler",
-      },
-    );
+    const reservationHandler = new NodejsFunction(this, "ReservationHandler", {
+      ...nodejsFnProps,
+      functionName: `${id}-ReservationHandler`,
+      entry: path.join(backendSrc, "handlers/reservation.ts"),
+    });
 
-    const adminHandler = new lambda.Function(this, "AdminHandler", {
-      ...sharedLambdaProps,
+    const adminHandler = new NodejsFunction(this, "AdminHandler", {
+      ...nodejsFnProps,
       functionName: `${id}-AdminHandler`,
-      handler: "handlers/admin.handler",
+      entry: path.join(backendSrc, "handlers/admin.ts"),
     });
 
     // ── IAM grants ─────────────────────────────────────────────────────
@@ -89,24 +87,13 @@ export class ApiStack extends cdk.Stack {
           "Authorization",
           "X-Amz-Date",
           "X-Api-Key",
+          "x-dev-user-id",
         ],
       },
     });
 
-    // ── Cognito Authorizer ─────────────────────────────────────────────
-    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(
-      this,
-      "CognitoAuthorizer",
-      {
-        cognitoUserPools: [userPool],
-        identitySource: "method.request.header.Authorization",
-      },
-    );
-
-    const authMethodOptions: apigateway.MethodOptions = {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    };
+    // ── Auth skipped — all endpoints are public for now ────────────────
+    const authMethodOptions: apigateway.MethodOptions = {};
 
     // ── Lambda integrations ────────────────────────────────────────────
     const usersIntegration = new apigateway.LambdaIntegration(usersHandler);

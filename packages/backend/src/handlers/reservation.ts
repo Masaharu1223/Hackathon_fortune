@@ -29,7 +29,9 @@ function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyRes
 }
 
 function getUserId(event: APIGatewayProxyEvent): string | null {
-  return event.requestContext.authorizer?.claims?.sub ?? null;
+  return event.requestContext.authorizer?.claims?.sub
+    ?? event.headers?.['x-dev-user-id']
+    ?? null;
 }
 
 // ---------------------------------------------------------------------------
