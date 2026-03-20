@@ -115,24 +115,7 @@ async function getWatchlist(userId: string): Promise<APIGatewayProxyResult> {
     },
   });
 
-  const enrichedItems = await Promise.all(
-    items.map(async (item) => {
-      const series = await queryByGSI<KujiSeries & Record<string, unknown>>(
-        GSI.GSI2,
-        'GSI2PK',
-        `${ENTITY_PREFIXES.SERIES}${item.seriesId}`,
-      );
-
-      return {
-        seriesId: item.seriesId,
-        seriesTitle: item.seriesTitle,
-        notifyRadius: item.notifyRadius,
-        releaseDate: series[0]?.releaseDate,
-      };
-    }),
-  );
-
-  return jsonResponse(200, { success: true, data: enrichedItems });
+  return jsonResponse(200, { success: true, data: items });
 }
 
 async function addWatchlistItem(
@@ -157,6 +140,7 @@ async function addWatchlistItem(
     userId,
     seriesId: body.seriesId,
     seriesTitle: body.seriesTitle,
+    releaseDate: body.releaseDate,
     notifyRadius: body.notifyRadius ?? 5,
     userLat: body.userLat ?? 0,
     userLng: body.userLng ?? 0,
@@ -182,7 +166,7 @@ async function removeWatchlistItem(
 }
 
 async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
-  const items = await queryByGSI<Reservation & Record<string, unknown>>(
+  const items = await queryByGSI<Reservation>(
     GSI.GSI3,
     'GSI3PK',
     `${ENTITY_PREFIXES.USER}${userId}`,
@@ -190,22 +174,23 @@ async function getReservations(userId: string): Promise<APIGatewayProxyResult> {
 
   const reservations = await Promise.all(
     items.map(async (item) => {
-      const [store, series] = await Promise.all([
-        getItem<Store & Record<string, unknown>>(keys.store(item.storeId)),
-        getItem<KujiSeries & Record<string, unknown>>(keys.kujiSeries(item.storeId, item.seriesId)),
-      ]);
+      let storeName = item.storeName;
+      let seriesTitle = item.seriesTitle;
+
+      if (!storeName || !seriesTitle) {
+        const [store, series] = await Promise.all([
+          !storeName ? getItem<Store>(keys.store(item.storeId)) : Promise.resolve(null),
+          !seriesTitle ? getItem<KujiSeries>(keys.kujiSeries(item.storeId, item.seriesId)) : Promise.resolve(null),
+        ]);
+        storeName = storeName ?? store?.storeName ?? item.storeId;
+        seriesTitle = seriesTitle ?? series?.title ?? item.seriesId;
+      }
 
       return {
-        reservationId:
-          (item.reservationId as string | undefined) ??
-          `${item.storeId}:${item.seriesId}:${userId}`,
-        storeId: item.storeId,
-        storeName: (item.storeName as string | undefined) ?? store?.storeName ?? item.storeId,
-        seriesId: item.seriesId,
-        seriesTitle: (item.seriesTitle as string | undefined) ?? series?.title ?? item.seriesId,
-        drawCount: item.drawCount,
-        status: item.status,
-        createdAt: item.createdAt,
+        ...item,
+        reservationId: item.reservationId ?? `${item.storeId}:${item.seriesId}:${userId}`,
+        storeName,
+        seriesTitle,
       };
     }),
   );
