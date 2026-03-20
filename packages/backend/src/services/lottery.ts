@@ -1,3 +1,4 @@
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import {
   ENTITY_PREFIXES,
   GSI,
@@ -17,32 +18,17 @@ import { sendNotification, type LotteryResultMessage } from './notification.js';
  *
  * Algorithm per series:
  *  1. Find all pending reservations for this series at a given store.
- *  2. Shuffle them randomly.
- *  3. Award wins to shuffled reservations in order until remainingTickets is exhausted.
- *  4. Mark remaining reservations as "lost".
- *  5. Update the kuji series remainingTickets count.
- *  6. Send notification messages for each result.
+ *  2. Create a lottery pool where each entry represents a single ticket draw.
+ *  3. Shuffle the pool randomly (Fisher-Yates).
+ *  4. Award wins to the first N entries from the pool, where N is the remaining tickets.
+ *  5. Mark reservations as "won" if they have 1+ wins, else "lost".
+ *  6. Update the kuji series remainingTickets count.
+ *  7. Send notification messages for each result.
  */
 export async function runLottery(): Promise<{ processed: number; winners: number; losers: number }> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-  // Query all kuji series across all stores using GSI2 won't work directly
-  // since we need to find all on_sale series. Instead, we scan for series
-  // that need lottery processing. In production, you'd use a scheduled status
-  // table or DynamoDB streams. Here we query all stores' kuji items.
-
-  // Find all series entries that are on_sale — we query GSI2 for all SERIES# prefixed items.
-  // Since we don't know all seriesIds upfront, we rely on the caller (EventBridge)
-  // passing a list or we maintain a "lottery queue". For simplicity we scan
-  // for KUJI# items with status on_sale by querying each store.
-  //
-  // In practice, a GSI on status would be ideal. Here we use a targeted approach:
-  // Query all items whose SK begins with KUJI# across stores.
-  // We'll use a secondary approach: query the GSI2 for known series.
-
-  // Pragmatic approach: Query all items with SK beginning with KUJI# (series items)
-  // by scanning. For a production system, add a GSI on status.
-  const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+  const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
   const { ddbDoc } = await import('./dynamodb.js');
   const { TABLE_NAME } = await import('@ichiban-kuji/shared');
 
@@ -75,7 +61,7 @@ export async function runLottery(): Promise<{ processed: number; winners: number
   for (const series of onSaleSeries) {
     const storeId = series.storeId;
     const seriesId = series.seriesId;
-    let remainingTickets = series.remainingTickets;
+    const remainingTickets = series.remainingTickets;
 
     if (remainingTickets <= 0) continue;
 
@@ -94,88 +80,123 @@ export async function runLottery(): Promise<{ processed: number; winners: number
 
     if (pendingReservations.length === 0) continue;
 
-    // Shuffle reservations (Fisher-Yates)
-    const shuffled = [...pendingReservations];
-    for (let i = shuffled.length - 1; i > 0; i--) {
+    // 1. Create a lottery pool where each entry is a single ticket draw for a user
+    const lotteryPool: string[] = [];
+    for (const res of pendingReservations) {
+      for (let i = 0; i < res.drawCount; i++) {
+        lotteryPool.push(res.userId);
+      }
+    }
+
+    // 2. Shuffle the lottery pool (Fisher-Yates)
+    for (let i = lotteryPool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [lotteryPool[i], lotteryPool[j]] = [lotteryPool[j], lotteryPool[i]];
+    }
+
+    // 3. Determine winners based on remaining tickets
+    const totalDrawn = Math.min(lotteryPool.length, remainingTickets);
+    const winningTickets = lotteryPool.slice(0, totalDrawn);
+
+    // Count wins per user
+    const winCounts = new Map<string, number>();
+    for (const userId of winningTickets) {
+      winCounts.set(userId, (winCounts.get(userId) || 0) + 1);
     }
 
     const now = new Date().toISOString();
+    let seriesWinners = 0;
+    let seriesLosers = 0;
 
-    for (const reservation of shuffled) {
-      const userId = reservation.userId;
-      const drawCount = reservation.drawCount;
-      let drawsWon = 0;
-      let resultStatus: 'won' | 'lost';
+    // 4. Update kuji series remaining tickets FIRST (optimistic lock)
+    // This acts as a concurrency gate: only one Lambda execution can succeed.
+    // If another execution already updated remainingTickets, ConditionalCheckFailedException
+    // is thrown and we skip this series entirely, preventing double-issuance.
+    const newRemainingTickets = Math.max(0, remainingTickets - totalDrawn);
+    const seriesKeys = keys.kujiSeries(storeId, seriesId);
+    const newStatus = newRemainingTickets <= 0 ? 'sold_out' : 'on_sale';
 
-      if (remainingTickets >= drawCount) {
-        // Full win
-        drawsWon = drawCount;
-        remainingTickets -= drawCount;
-        resultStatus = 'won';
-      } else if (remainingTickets > 0) {
-        // Partial win — award remaining tickets
-        drawsWon = remainingTickets;
-        remainingTickets = 0;
-        resultStatus = 'won';
-      } else {
-        // No tickets left
-        drawsWon = 0;
-        resultStatus = 'lost';
-      }
-
-      // Update reservation status
-      const resKeys = keys.reservation(storeId, seriesId, userId);
+    try {
       await updateItem(
-        { PK: resKeys.PK, SK: resKeys.SK },
-        'SET #st = :status, updatedAt = :now',
-        { ':status': resultStatus, ':now': now },
+        { PK: seriesKeys.PK, SK: seriesKeys.SK },
+        'SET remainingTickets = :remaining, #st = :status, updatedAt = :now',
+        {
+          ':remaining': newRemainingTickets,
+          ':status': newStatus,
+          ':now': now,
+          ':oldRemaining': remainingTickets,
+        },
         { '#st': 'status' },
+        'remainingTickets = :oldRemaining',
       );
+    } catch (err: unknown) {
+      if (err instanceof ConditionalCheckFailedException) {
+        console.warn(`Skipping series ${seriesId} at store ${storeId}: remainingTickets changed (concurrent execution detected).`);
+        continue;
+      }
+      throw err;
+    }
 
-      // Write lottery result
-      const lotteryKeys = keys.lotteryResult(storeId, seriesId, today, userId);
-      const lotteryResult: LotteryResult & Record<string, unknown> = {
-        ...lotteryKeys,
-        storeId,
-        seriesId,
-        userId,
-        date: today,
-        result: resultStatus,
-        drawsWon,
-      };
-      await putItem(lotteryResult);
+    // 5. Update individual reservations and send notifications
+    // The series update above succeeded, so we can safely record results.
+    for (const reservation of pendingReservations) {
+      const userId = reservation.userId;
+      const drawsWon = winCounts.get(userId) || 0;
+      const resultStatus: 'won' | 'lost' = drawsWon > 0 ? 'won' : 'lost';
 
-      // Send notification
-      const notificationMessage: LotteryResultMessage = {
-        type: 'lottery_result',
-        userId,
-        storeId,
-        seriesId,
-        seriesTitle: series.title,
-        result: resultStatus,
-        drawsWon,
-      };
-      await sendNotification(notificationMessage);
+      try {
+        // Update reservation status
+        const resKeys = keys.reservation(storeId, seriesId, userId);
+        await updateItem(
+          { PK: resKeys.PK, SK: resKeys.SK },
+          'SET #st = :status, updatedAt = :now',
+          { ':status': resultStatus, ':now': now },
+          { '#st': 'status' },
+        );
 
-      if (resultStatus === 'won') {
-        totalWinners++;
-      } else {
-        totalLosers++;
+        // Write lottery result (idempotent: skip if already written)
+        const lotteryKeys = keys.lotteryResult(storeId, seriesId, today, userId);
+        const lotteryResult: LotteryResult & Record<string, unknown> = {
+          ...lotteryKeys,
+          storeId,
+          seriesId,
+          userId,
+          date: today,
+          result: resultStatus,
+          drawsWon,
+        };
+        await putItem(lotteryResult, 'attribute_not_exists(PK)');
+
+        // Send notification
+        const notificationMessage: LotteryResultMessage = {
+          type: 'lottery_result',
+          userId,
+          storeId,
+          seriesId,
+          seriesTitle: series.title,
+          result: resultStatus,
+          drawsWon,
+        };
+        await sendNotification(notificationMessage);
+
+        if (resultStatus === 'won') {
+          seriesWinners++;
+        } else {
+          seriesLosers++;
+        }
+      } catch (reservationErr: unknown) {
+        if (reservationErr instanceof ConditionalCheckFailedException) {
+          // LotteryResult already exists — this user was processed in a previous run.
+          if (resultStatus === 'won') seriesWinners++;
+          else seriesLosers++;
+        } else {
+          console.error(`Failed to process reservation: userId=${userId} seriesId=${seriesId} storeId=${storeId}`, reservationErr);
+        }
       }
     }
 
-    // Update kuji series remaining tickets
-    const seriesKeys = keys.kujiSeries(storeId, seriesId);
-    const newStatus = remainingTickets <= 0 ? 'sold_out' : 'on_sale';
-    await updateItem(
-      { PK: seriesKeys.PK, SK: seriesKeys.SK },
-      'SET remainingTickets = :remaining, #st = :status, updatedAt = :now',
-      { ':remaining': remainingTickets, ':status': newStatus, ':now': now },
-      { '#st': 'status' },
-    );
-
+    totalWinners += seriesWinners;
+    totalLosers += seriesLosers;
     processed++;
   }
 
