@@ -1,3 +1,4 @@
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import {
   ENTITY_PREFIXES,
   GSI,
@@ -107,63 +108,92 @@ export async function runLottery(): Promise<{ processed: number; winners: number
     let seriesWinners = 0;
     let seriesLosers = 0;
 
-    // 4. Update data for each reservation
+    // 4. Update kuji series remaining tickets FIRST (optimistic lock)
+    // This acts as a concurrency gate: only one Lambda execution can succeed.
+    // If another execution already updated remainingTickets, ConditionalCheckFailedException
+    // is thrown and we skip this series entirely, preventing double-issuance.
+    const newRemainingTickets = Math.max(0, remainingTickets - totalDrawn);
+    const seriesKeys = keys.kujiSeries(storeId, seriesId);
+    const newStatus = newRemainingTickets <= 0 ? 'sold_out' : 'on_sale';
+
+    try {
+      await updateItem(
+        { PK: seriesKeys.PK, SK: seriesKeys.SK },
+        'SET remainingTickets = :remaining, #st = :status, updatedAt = :now',
+        {
+          ':remaining': newRemainingTickets,
+          ':status': newStatus,
+          ':now': now,
+          ':oldRemaining': remainingTickets,
+        },
+        { '#st': 'status' },
+        'remainingTickets = :oldRemaining',
+      );
+    } catch (err: unknown) {
+      if (err instanceof ConditionalCheckFailedException) {
+        console.warn(`Skipping series ${seriesId} at store ${storeId}: remainingTickets changed (concurrent execution detected).`);
+        continue;
+      }
+      throw err;
+    }
+
+    // 5. Update individual reservations and send notifications
+    // The series update above succeeded, so we can safely record results.
     for (const reservation of pendingReservations) {
       const userId = reservation.userId;
       const drawsWon = winCounts.get(userId) || 0;
       const resultStatus: 'won' | 'lost' = drawsWon > 0 ? 'won' : 'lost';
 
-      // Update reservation status
-      const resKeys = keys.reservation(storeId, seriesId, userId);
-      await updateItem(
-        { PK: resKeys.PK, SK: resKeys.SK },
-        'SET #st = :status, updatedAt = :now',
-        { ':status': resultStatus, ':now': now },
-        { '#st': 'status' },
-      );
+      try {
+        // Update reservation status
+        const resKeys = keys.reservation(storeId, seriesId, userId);
+        await updateItem(
+          { PK: resKeys.PK, SK: resKeys.SK },
+          'SET #st = :status, updatedAt = :now',
+          { ':status': resultStatus, ':now': now },
+          { '#st': 'status' },
+        );
 
-      // Write lottery result
-      const lotteryKeys = keys.lotteryResult(storeId, seriesId, today, userId);
-      const lotteryResult: LotteryResult & Record<string, unknown> = {
-        ...lotteryKeys,
-        storeId,
-        seriesId,
-        userId,
-        date: today,
-        result: resultStatus,
-        drawsWon,
-      };
-      await putItem(lotteryResult);
+        // Write lottery result (idempotent: skip if already written)
+        const lotteryKeys = keys.lotteryResult(storeId, seriesId, today, userId);
+        const lotteryResult: LotteryResult & Record<string, unknown> = {
+          ...lotteryKeys,
+          storeId,
+          seriesId,
+          userId,
+          date: today,
+          result: resultStatus,
+          drawsWon,
+        };
+        await putItem(lotteryResult, 'attribute_not_exists(PK)');
 
-      // Send notification
-      const notificationMessage: LotteryResultMessage = {
-        type: 'lottery_result',
-        userId,
-        storeId,
-        seriesId,
-        seriesTitle: series.title,
-        result: resultStatus,
-        drawsWon,
-      };
-      await sendNotification(notificationMessage);
+        // Send notification
+        const notificationMessage: LotteryResultMessage = {
+          type: 'lottery_result',
+          userId,
+          storeId,
+          seriesId,
+          seriesTitle: series.title,
+          result: resultStatus,
+          drawsWon,
+        };
+        await sendNotification(notificationMessage);
 
-      if (resultStatus === 'won') {
-        seriesWinners++;
-      } else {
-        seriesLosers++;
+        if (resultStatus === 'won') {
+          seriesWinners++;
+        } else {
+          seriesLosers++;
+        }
+      } catch (reservationErr: unknown) {
+        if (reservationErr instanceof ConditionalCheckFailedException) {
+          // LotteryResult already exists — this user was processed in a previous run.
+          if (resultStatus === 'won') seriesWinners++;
+          else seriesLosers++;
+        } else {
+          console.error(`Failed to process reservation: userId=${userId} seriesId=${seriesId} storeId=${storeId}`, reservationErr);
+        }
       }
     }
-
-    // Update kuji series remaining tickets
-    const newRemainingTickets = Math.max(0, remainingTickets - totalDrawn);
-    const seriesKeys = keys.kujiSeries(storeId, seriesId);
-    const newStatus = newRemainingTickets <= 0 ? 'sold_out' : 'on_sale';
-    await updateItem(
-      { PK: seriesKeys.PK, SK: seriesKeys.SK },
-      'SET remainingTickets = :remaining, #st = :status, updatedAt = :now',
-      { ':remaining': newRemainingTickets, ':status': newStatus, ':now': now },
-      { '#st': 'status' },
-    );
 
     totalWinners += seriesWinners;
     totalLosers += seriesLosers;

@@ -99,10 +99,12 @@ export async function getItem<T = Record<string, unknown>>(
 
 export async function putItem(
   item: Record<string, unknown>,
+  conditionExpression?: string,
 ): Promise<void> {
   const params: PutCommandInput = {
     TableName: TABLE_NAME,
     Item: item,
+    ...(conditionExpression && { ConditionExpression: conditionExpression }),
   };
   await ddbDoc.send(new PutCommand(params));
 }
@@ -134,6 +136,7 @@ export async function updateItem(
   updateExpression: string,
   expressionAttributeValues: Record<string, unknown>,
   expressionAttributeNames?: Record<string, string>,
+  conditionExpression?: string,
 ): Promise<Record<string, unknown> | undefined> {
   const params: UpdateCommandInput = {
     TableName: TABLE_NAME,
@@ -142,6 +145,7 @@ export async function updateItem(
     ExpressionAttributeValues: expressionAttributeValues,
     ReturnValues: 'ALL_NEW',
     ...(expressionAttributeNames && { ExpressionAttributeNames: expressionAttributeNames }),
+    ...(conditionExpression && { ConditionExpression: conditionExpression }),
   };
   const result = await ddbDoc.send(new UpdateCommand(params));
   return result.Attributes;
