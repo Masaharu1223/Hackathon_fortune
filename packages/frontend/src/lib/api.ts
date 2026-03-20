@@ -53,10 +53,17 @@ interface RawWatchlistItem {
 }
 
 function getAuthHeaders(): HeadersInit {
-  if (typeof window === 'undefined') return {};
+  const headers: Record<string, string> = {};
+  if (typeof window === 'undefined') return headers;
   const token = localStorage.getItem('auth_token');
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Dev mode: send dummy user ID when no real auth
+  if (!token) {
+    headers['x-dev-user-id'] = 'dev-user-001';
+  }
+  return headers;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

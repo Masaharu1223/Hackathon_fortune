@@ -17,7 +17,8 @@ const env: cdk.Environment = {
 
 const stage = app.node.tryGetContext("stage") ?? "dev";
 
-const auth = new AuthStack(app, `${stage}-IchibanKuji-Auth`, { env });
+// Auth stack skipped — deploy without Cognito for now
+// const auth = new AuthStack(app, `${stage}-IchibanKuji-Auth`, { env });
 
 const database = new DatabaseStack(app, `${stage}-IchibanKuji-Database`, {
   env,
@@ -34,8 +35,6 @@ const notification = new NotificationStack(
 
 const api = new ApiStack(app, `${stage}-IchibanKuji-Api`, {
   env,
-  userPool: auth.userPool,
-  userPoolClient: auth.userPoolClient,
   mainTable: database.mainTable,
   geoTable: database.geoTable,
   notificationQueue: notification.queue,
