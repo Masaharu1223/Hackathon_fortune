@@ -3,10 +3,13 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as location from "aws-cdk-lib/aws-location";
 import { Construct } from "constructs";
 
 interface FrontendStackProps extends cdk.StackProps {
   api: apigateway.RestApi;
+  locationMap?: location.CfnMap;
+  identityPoolId?: string;
 }
 
 export class FrontendStack extends cdk.Stack {
@@ -16,7 +19,7 @@ export class FrontendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: FrontendStackProps) {
     super(scope, id, props);
 
-    const { api } = props;
+    const { api, locationMap, identityPoolId } = props;
 
     // ── S3 Bucket (private — accessed only via CloudFront OAC) ────────
     this.bucket = new s3.Bucket(this, "FrontendBucket", {
@@ -82,6 +85,24 @@ export class FrontendStack extends cdk.Stack {
     });
     new cdk.CfnOutput(this, "BucketName", {
       value: this.bucket.bucketName,
+    });
+
+    // AWS Location Service outputs for frontend
+    if (locationMap) {
+      new cdk.CfnOutput(this, "LocationMapName", {
+        value: locationMap.mapName,
+        description: "AWS Location Service Map Name",
+      });
+    }
+    if (identityPoolId) {
+      new cdk.CfnOutput(this, "IdentityPoolId", {
+        value: identityPoolId,
+        description: "Cognito Identity Pool ID for map access",
+      });
+    }
+    new cdk.CfnOutput(this, "Region", {
+      value: this.region,
+      description: "AWS Region",
     });
   }
 }
