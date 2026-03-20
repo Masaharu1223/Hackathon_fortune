@@ -46,6 +46,7 @@ export interface WatchlistItem {
   userId: string;
   seriesId: string;
   seriesTitle: string;
+  releaseDate?: string;
   notifyRadius: number; // km
   userLat: number;
   userLng: number;
@@ -53,8 +54,11 @@ export interface WatchlistItem {
 }
 
 export interface Reservation {
+  reservationId?: string;
   storeId: string;
+  storeName?: string;
   seriesId: string;
+  seriesTitle?: string;
   userId: string;
   drawCount: 1 | 2 | 3;
   status: 'pending' | 'won' | 'lost' | 'cancelled';
