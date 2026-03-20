@@ -245,7 +245,9 @@ export default function KujiInventoryClient({
         setShowManual(true);
       }
     } catch (err) {
-      console.error('Rekognition error:', err);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Rekognition error:', err);
+      }
       setShowManual(true);
     } finally {
       setRecognizing(false);

@@ -1,10 +1,5 @@
 import KujiInventoryClient from './client';
 
-export function generateStaticParams() {
-  // Dynamic routes are resolved at runtime; return empty array for static export.
-  return [];
-}
-
 export default async function Page({
   params,
 }: {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RekognitionClient, DetectTextCommand } from '@aws-sdk/client-rekognition';
 
-// NOTE: This API route requires Next.js server mode (npm run dev).
-// It does not work with `output: 'export'` in next.config.ts.
+// NOTE: This API route requires Next.js server mode.
+// AWS credentials must be set in .env.local (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN).
 
 const rekognition = new RekognitionClient({
   region: process.env.AWS_REGION || 'us-east-1',
