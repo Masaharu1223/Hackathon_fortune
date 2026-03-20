@@ -23,3 +23,5 @@ export const GSI = {
 } as const;
 
 export const NOTIFICATION_QUEUE_URL = process.env.NOTIFICATION_QUEUE_URL ?? '';
+
+export const LOCATION_PLACE_INDEX_NAME = process.env.LOCATION_PLACE_INDEX_NAME ?? 'IchibanKujiPlaceIndex';

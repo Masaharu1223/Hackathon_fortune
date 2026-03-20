@@ -23,6 +23,7 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
+  const currentLocMarkerRef = useRef<L.Marker | null>(null);
 
   // マップ初期化
   useEffect(() => {
@@ -100,14 +101,39 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
       markersRef.current!.addLayer(marker);
     });
 
-    // 全マーカーが収まるようにフィット
-    if (stores.length > 0) {
-      const bounds = L.latLngBounds(stores.map((s) => [s.lat, s.lng]));
+    // 現在地マーカー
+    if (currentLocMarkerRef.current) {
+      currentLocMarkerRef.current.remove();
+    }
+    const currentLocIcon = L.divIcon({
+      className: 'current-location-icon',
+      html: `<div style="
+        width: 16px; height: 16px;
+        background: #4285F4;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 8px rgba(66,133,244,0.5);
+      "></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+    currentLocMarkerRef.current = L.marker([center.lat, center.lng], {
+      icon: currentLocIcon,
+      zIndexOffset: 1000,
+    })
+      .bindTooltip('現在地', { direction: 'top', offset: [0, -10] })
+      .addTo(mapRef.current);
+
+    // 全マーカーが収まるようにフィット（現在地も含む）
+    const allPoints: [number, number][] = stores.map((s) => [s.lat, s.lng]);
+    allPoints.push([center.lat, center.lng]);
+    if (allPoints.length > 0) {
+      const bounds = L.latLngBounds(allPoints);
       mapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
 
     return undefined;
-  }, [stores]);
+  }, [stores, center.lat, center.lng]);
 
   return (
     <div
