@@ -8,6 +8,7 @@ import {
   type ApiResponse,
 } from '@ichiban-kuji/shared';
 import { keys, getItem, putItem, updateItem } from '../services/dynamodb.js';
+import { getUserId } from '../utils/auth.js';
 
 // ---------------------------------------------------------------------------
 // CORS headers
@@ -26,12 +27,6 @@ function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyRes
     headers: CORS_HEADERS,
     body: JSON.stringify(body),
   };
-}
-
-function getUserId(event: APIGatewayProxyEvent): string | null {
-  return event.requestContext.authorizer?.claims?.sub
-    ?? event.headers?.['x-dev-user-id']
-    ?? null;
 }
 
 // ---------------------------------------------------------------------------

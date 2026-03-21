@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isLoggedIn } from '@/lib/auth';
+import { getAuthHeaders, isLoggedIn } from '@/lib/auth';
 
 interface StoreForm {
   name: string;
@@ -23,16 +23,20 @@ interface SeriesForm {
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 
 async function adminRequest(path: string, body: unknown) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...getAuthHeaders(),
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Error: ${res.status}`);
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null) as { error?: string } | null;
+    throw new Error(payload?.error || `Error: ${res.status}`);
+  }
+
   return res.json();
 }
 
@@ -76,8 +80,11 @@ export default function AdminPage() {
       });
       setMessage({ type: 'success', text: '店舗を登録しました' });
       setStoreForm({ name: '', address: '', lat: '', lng: '' });
-    } catch {
-      setMessage({ type: 'error', text: '店舗の登録に失敗しました' });
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : '店舗の登録に失敗しました',
+      });
     }
   };
 
@@ -101,8 +108,11 @@ export default function AdminPage() {
       });
       setMessage({ type: 'success', text: 'くじシリーズを登録しました' });
       setSeriesForm({ store_id: '', title: '', price: '', release_date: '', total_tickets: '', prizes: '' });
-    } catch {
-      setMessage({ type: 'error', text: 'くじシリーズの登録に失敗しました' });
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'くじシリーズの登録に失敗しました',
+      });
     }
   };
 

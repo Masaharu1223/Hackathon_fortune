@@ -8,6 +8,20 @@ export class AuthStack extends cdk.Stack {
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+    const frontendBaseUrl =
+      this.node.tryGetContext("frontendBaseUrl") ?? "http://localhost:3000";
+    const googleClientId =
+      process.env.GOOGLE_CLIENT_ID
+      ?? this.node.tryGetContext("googleClientId");
+    const googleClientSecret =
+      process.env.GOOGLE_CLIENT_SECRET
+      ?? this.node.tryGetContext("googleClientSecret");
+
+    if (!googleClientId || !googleClientSecret) {
+      throw new Error(
+        "Missing Google OAuth credentials. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or pass --context googleClientId=... --context googleClientSecret=...",
+      );
+    }
 
     // ── Cognito User Pool ──────────────────────────────────────────────
     this.userPool = new cognito.UserPool(this, "UserPool", {
@@ -24,9 +38,6 @@ export class AuthStack extends cdk.Stack {
     });
 
     // ── Google Identity Provider ───────────────────────────────────────
-    const googleClientId = cdk.Fn.importValue("GoogleClientId");
-    const googleClientSecret = cdk.Fn.importValue("GoogleClientSecret");
-
     const googleProvider = new cognito.UserPoolIdentityProviderGoogle(
       this,
       "GoogleProvider",
@@ -43,35 +54,6 @@ export class AuthStack extends cdk.Stack {
       },
     );
 
-    // ── LINE OIDC Identity Provider ────────────────────────────────────
-    const lineChannelId = cdk.Fn.importValue("LineChannelId");
-    const lineChannelSecret = cdk.Fn.importValue("LineChannelSecret");
-
-    const lineProvider = new cognito.UserPoolIdentityProviderOidc(
-      this,
-      "LineProvider",
-      {
-        userPool: this.userPool,
-        name: "LINE",
-        clientId: lineChannelId,
-        clientSecret: lineChannelSecret,
-        issuerUrl: "https://access.line.me",
-        scopes: ["openid", "profile", "email"],
-        attributeMapping: {
-          email: cognito.ProviderAttribute.other("email"),
-          fullname: cognito.ProviderAttribute.other("name"),
-          profilePicture: cognito.ProviderAttribute.other("picture"),
-        },
-        endpoints: {
-          authorization: "https://access.line.me/oauth2/v2.1/authorize",
-          token: "https://api.line.me/oauth2/v2.1/token",
-          userInfo: "https://api.line.me/v2/profile",
-          jwksUri:
-            "https://api.line.me/oauth2/v2.1/certs",
-        },
-      },
-    );
-
     // ── User Pool Domain ───────────────────────────────────────────────
     const domainPrefix =
       this.node.tryGetContext("cognitoDomainPrefix") ?? `ichiban-kuji-${cdk.Aws.ACCOUNT_ID}`;
@@ -84,24 +66,22 @@ export class AuthStack extends cdk.Stack {
       userPoolClientName: `${id}-AppClient`,
       generateSecret: false,
       oAuth: {
-        flows: { authorizationCodeGrant: true },
+        flows: { implicitCodeGrant: true },
         scopes: [
           cognito.OAuthScope.OPENID,
           cognito.OAuthScope.EMAIL,
           cognito.OAuthScope.PROFILE,
         ],
-        callbackUrls: ["http://localhost:3000/callback"],
-        logoutUrls: ["http://localhost:3000/"],
+        callbackUrls: [`${frontendBaseUrl}/login/callback`],
+        logoutUrls: [`${frontendBaseUrl}/`],
       },
       supportedIdentityProviders: [
         cognito.UserPoolClientIdentityProvider.GOOGLE,
-        cognito.UserPoolClientIdentityProvider.custom("LINE"),
       ],
     });
 
     // Ensure providers are created before the client
     this.userPoolClient.node.addDependency(googleProvider);
-    this.userPoolClient.node.addDependency(lineProvider);
 
     // ── Outputs ────────────────────────────────────────────────────────
     new cdk.CfnOutput(this, "UserPoolId", {
@@ -109,6 +89,9 @@ export class AuthStack extends cdk.Stack {
     });
     new cdk.CfnOutput(this, "UserPoolClientId", {
       value: this.userPoolClient.userPoolClientId,
+    });
+    new cdk.CfnOutput(this, "CognitoDomainUrl", {
+      value: `https://${domainPrefix}.auth.${cdk.Aws.REGION}.amazoncognito.com`,
     });
   }
 }

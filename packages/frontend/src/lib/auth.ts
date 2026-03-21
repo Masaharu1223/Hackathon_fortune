@@ -1,29 +1,25 @@
-const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || '';
+const COGNITO_DOMAIN = (process.env.NEXT_PUBLIC_COGNITO_DOMAIN || '').replace(/\/$/, '');
 const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID || '';
-const REDIRECT_URI = process.env.NEXT_PUBLIC_REDIRECT_URI || '';
+const REDIRECT_URI = process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3000/login/callback';
+const LOGOUT_URI = process.env.NEXT_PUBLIC_LOGOUT_URI || 'http://localhost:3000/';
 
 const TOKEN_KEY = 'auth_token';
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
-const DUMMY_TOKEN = 'debug-dummy-token';
+
+export function isAuthConfigured(): boolean {
+  return Boolean(COGNITO_DOMAIN && CLIENT_ID);
+}
 
 export function getGoogleLoginUrl(): string {
+  if (!isAuthConfigured()) {
+    return '#';
+  }
+
   const params = new URLSearchParams({
     response_type: 'token',
     client_id: CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     scope: 'openid email profile',
     identity_provider: 'Google',
-  });
-  return `${COGNITO_DOMAIN}/oauth2/authorize?${params.toString()}`;
-}
-
-export function getLineLoginUrl(): string {
-  const params = new URLSearchParams({
-    response_type: 'token',
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    scope: 'openid email profile',
-    identity_provider: 'LINE',
   });
   return `${COGNITO_DOMAIN}/oauth2/authorize?${params.toString()}`;
 }
@@ -43,23 +39,37 @@ export function parseTokenFromCallback(): string | null {
   return token;
 }
 
+export function clearToken(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(TOKEN_KEY);
+}
+
 export function getToken(): string | null {
-  if (BYPASS_AUTH) {
-    return DUMMY_TOKEN;
-  }
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 }
 
+export function getAuthHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export function isLoggedIn(): boolean {
-  if (BYPASS_AUTH) {
-    return true;
-  }
   return !!getToken();
 }
 
 export function logout(): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(TOKEN_KEY);
-  window.location.href = '/';
+  clearToken();
+
+  if (!isAuthConfigured()) {
+    window.location.href = '/';
+    return;
+  }
+
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    logout_uri: LOGOUT_URI,
+  });
+  window.location.href = `${COGNITO_DOMAIN}/logout?${params.toString()}`;
 }

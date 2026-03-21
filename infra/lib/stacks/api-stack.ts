@@ -1,5 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
@@ -8,6 +9,7 @@ import { Construct } from "constructs";
 import * as path from "path";
 
 interface ApiStackProps extends cdk.StackProps {
+  userPool: cognito.IUserPool;
   mainTable: dynamodb.Table;
   geoTable: dynamodb.Table;
   notificationQueue: sqs.Queue;
@@ -19,12 +21,13 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
-    const { mainTable, geoTable, notificationQueue } = props;
+    const { userPool, mainTable, geoTable, notificationQueue } = props;
 
     const commonEnv: Record<string, string> = {
       TABLE_NAME: mainTable.tableName,
       GEO_TABLE_NAME: geoTable.tableName,
       NOTIFICATION_QUEUE_URL: notificationQueue.queueUrl,
+      ADMIN_EMAIL_ALLOWLIST: process.env.ADMIN_EMAIL_ALLOWLIST ?? "",
     };
 
     const backendSrc = path.join(__dirname, "../../../packages/backend/src");
@@ -87,13 +90,22 @@ export class ApiStack extends cdk.Stack {
           "Authorization",
           "X-Amz-Date",
           "X-Api-Key",
-          "x-dev-user-id",
         ],
       },
     });
 
-    // ── Auth skipped — all endpoints are public for now ────────────────
-    const authMethodOptions: apigateway.MethodOptions = {};
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(
+      this,
+      "ApiAuthorizer",
+      {
+        cognitoUserPools: [userPool],
+      },
+    );
+
+    const protectedMethodOptions: apigateway.MethodOptions = {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    };
 
     // ── Lambda integrations ────────────────────────────────────────────
     const usersIntegration = new apigateway.LambdaIntegration(usersHandler);
@@ -108,20 +120,20 @@ export class ApiStack extends cdk.Stack {
     // /api/v1/users
     const users = v1.addResource("users");
     const usersMe = users.addResource("me");
-    usersMe.addMethod("GET", usersIntegration, authMethodOptions);
+    usersMe.addMethod("GET", usersIntegration, protectedMethodOptions);
 
     // /api/v1/users/me/watchlist
     const watchlist = usersMe.addResource("watchlist");
-    watchlist.addMethod("GET", usersIntegration, authMethodOptions);
-    watchlist.addMethod("POST", usersIntegration, authMethodOptions);
+    watchlist.addMethod("GET", usersIntegration, protectedMethodOptions);
+    watchlist.addMethod("POST", usersIntegration, protectedMethodOptions);
 
     // /api/v1/users/me/watchlist/{seriesId}
     const watchlistSeries = watchlist.addResource("{seriesId}");
-    watchlistSeries.addMethod("DELETE", usersIntegration, authMethodOptions);
+    watchlistSeries.addMethod("DELETE", usersIntegration, protectedMethodOptions);
 
     // /api/v1/users/me/reservations
     const userReservations = usersMe.addResource("reservations");
-    userReservations.addMethod("GET", usersIntegration, authMethodOptions);
+    userReservations.addMethod("GET", usersIntegration, protectedMethodOptions);
 
     // /api/v1/stores
     const stores = v1.addResource("stores");
@@ -138,29 +150,29 @@ export class ApiStack extends cdk.Stack {
     const kuji = storeById.addResource("kuji");
     const kujiSeries = kuji.addResource("{seriesId}");
     const reserve = kujiSeries.addResource("reserve");
-    reserve.addMethod("POST", reservationIntegration, authMethodOptions);
-    reserve.addMethod("DELETE", reservationIntegration, authMethodOptions);
+    reserve.addMethod("POST", reservationIntegration, protectedMethodOptions);
+    reserve.addMethod("DELETE", reservationIntegration, protectedMethodOptions);
 
     // /api/v1/admin
     const admin = v1.addResource("admin");
     const adminStores = admin.addResource("stores");
-    adminStores.addMethod("POST", adminIntegration, authMethodOptions);
+    adminStores.addMethod("POST", adminIntegration, protectedMethodOptions);
 
     // /api/v1/admin/stores/{storeId}
     const adminStoreById = adminStores.addResource("{storeId}");
-    adminStoreById.addMethod("PUT", adminIntegration, authMethodOptions);
+    adminStoreById.addMethod("PUT", adminIntegration, protectedMethodOptions);
 
     // /api/v1/admin/stores/{storeId}/kuji
     const adminKuji = adminStoreById.addResource("kuji");
-    adminKuji.addMethod("POST", adminIntegration, authMethodOptions);
+    adminKuji.addMethod("POST", adminIntegration, protectedMethodOptions);
 
     // /api/v1/admin/stores/{storeId}/kuji/{seriesId}
     const adminKujiSeries = adminKuji.addResource("{seriesId}");
-    adminKujiSeries.addMethod("PUT", adminIntegration, authMethodOptions);
+    adminKujiSeries.addMethod("PUT", adminIntegration, protectedMethodOptions);
 
     // /api/v1/admin/stores/{storeId}/kuji/{seriesId}/reservations
     const adminReservations = adminKujiSeries.addResource("reservations");
-    adminReservations.addMethod("GET", adminIntegration, authMethodOptions);
+    adminReservations.addMethod("GET", adminIntegration, protectedMethodOptions);
 
     // ── Outputs ────────────────────────────────────────────────────────
     new cdk.CfnOutput(this, "ApiUrl", {

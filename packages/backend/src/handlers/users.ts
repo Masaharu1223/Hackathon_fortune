@@ -10,6 +10,7 @@ import {
   type ApiResponse,
 } from '@ichiban-kuji/shared';
 import { keys, getItem, putItem, deleteItem, queryItems, queryByGSI } from '../services/dynamodb.js';
+import { getUserDisplayName, getUserId } from '../utils/auth.js';
 
 // ---------------------------------------------------------------------------
 // CORS headers
@@ -38,12 +39,6 @@ function normalizePath(event: APIGatewayProxyEvent): string {
 // Extract userId from Cognito authorizer
 // ---------------------------------------------------------------------------
 
-function getUserId(event: APIGatewayProxyEvent): string | null {
-  return event.requestContext.authorizer?.claims?.sub
-    ?? event.headers?.['x-dev-user-id']
-    ?? null;
-}
-
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
@@ -64,7 +59,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // GET /users/me
     if (method === 'GET' && path === '/users/me') {
-      return await getMe(userId);
+      return await getMe(userId, event);
     }
 
     // GET /users/me/watchlist
@@ -98,10 +93,24 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 // Route implementations
 // ---------------------------------------------------------------------------
 
-async function getMe(userId: string): Promise<APIGatewayProxyResult> {
+async function getMe(
+  userId: string,
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
   const user = await getItem<User>(keys.user(userId));
   if (!user) {
-    return jsonResponse(404, { success: false, error: 'User not found' });
+    const now = new Date().toISOString();
+    const newUser: User & Record<string, unknown> = {
+      ...keys.user(userId),
+      userId,
+      displayName: getUserDisplayName(event) ?? 'Google User',
+      authProvider: 'google',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await putItem(newUser);
+    return jsonResponse(201, { success: true, data: newUser });
   }
   return jsonResponse(200, { success: true, data: user });
 }

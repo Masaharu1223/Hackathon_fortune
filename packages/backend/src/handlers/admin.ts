@@ -9,6 +9,7 @@ import {
 } from '@ichiban-kuji/shared';
 import { keys, getItem, putItem, updateItem, queryItems } from '../services/dynamodb.js';
 import { putStore as geoputStore } from '../services/geo.js';
+import { getUserEmail, getUserId } from '../utils/auth.js';
 
 // ---------------------------------------------------------------------------
 // CORS headers
@@ -33,11 +34,12 @@ function normalizePath(event: APIGatewayProxyEvent): string {
   return (event.resource ?? event.path).replace(/^\/api\/v1/, '');
 }
 
-function getUserId(event: APIGatewayProxyEvent): string | null {
-  return event.requestContext.authorizer?.claims?.sub
-    ?? event.headers?.['x-dev-user-id']
-    ?? null;
-}
+const ADMIN_EMAIL_ALLOWLIST = new Set(
+  (process.env.ADMIN_EMAIL_ALLOWLIST ?? '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 // ---------------------------------------------------------------------------
 // Handler
@@ -52,6 +54,18 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const userId = getUserId(event);
     if (!userId) {
       return jsonResponse(401, { success: false, error: 'Unauthorized' });
+    }
+
+    if (ADMIN_EMAIL_ALLOWLIST.size === 0) {
+      return jsonResponse(500, {
+        success: false,
+        error: 'Admin allowlist is not configured',
+      });
+    }
+
+    const email = getUserEmail(event);
+    if (!email || !ADMIN_EMAIL_ALLOWLIST.has(email)) {
+      return jsonResponse(403, { success: false, error: 'Not authorized' });
     }
 
     const method = event.httpMethod;
