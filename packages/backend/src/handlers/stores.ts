@@ -10,6 +10,7 @@ import {
 } from '@ichiban-kuji/shared';
 import { keys, getItem, queryItems } from '../services/dynamodb.js';
 import { queryNearby } from '../services/geo.js';
+import { resolveStoreBrand } from '../utils/storeBrand.js';
 
 // ---------------------------------------------------------------------------
 // CORS headers
@@ -32,6 +33,13 @@ function jsonResponse(statusCode: number, body: ApiResponse): APIGatewayProxyRes
 
 function normalizePath(event: APIGatewayProxyEvent): string {
   return (event.resource ?? event.path).replace(/^\/api\/v1/, '');
+}
+
+function withResolvedStoreBrand(store: Store): Store {
+  return {
+    ...store,
+    storeBrand: resolveStoreBrand(store.storeBrand, store.storeName),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +111,7 @@ async function getNearbyStores(event: APIGatewayProxyEvent): Promise<APIGatewayP
         },
       });
 
-      return { ...store, distance, kujiSeries };
+      return { ...withResolvedStoreBrand(store), distance, kujiSeries };
     }),
   );
 
@@ -133,5 +141,5 @@ async function getStoreWithKuji(event: APIGatewayProxyEvent): Promise<APIGateway
     },
   });
 
-  return jsonResponse(200, { success: true, data: { ...store, kujiSeries } });
+  return jsonResponse(200, { success: true, data: { ...withResolvedStoreBrand(store), kujiSeries } });
 }

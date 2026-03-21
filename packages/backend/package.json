@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "seed:dev": "tsc -p tsconfig.seed.json && node dist-seed/seed_scripts/seed-dev-data.js"
+    "seed:dev": "tsc -p tsconfig.seed.json && node dist-seed/seed_scripts/seed-dev-data.js",
+    "backfill:store-brands": "tsc -p tsconfig.seed.json && node dist-seed/seed_scripts/backfill-store-brands.js"
   },
   "dependencies": {
     "@ichiban-kuji/shared": "*",

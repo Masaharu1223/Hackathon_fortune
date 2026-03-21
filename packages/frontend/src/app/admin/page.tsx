@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
+import { STORE_BRAND_OPTIONS, type StoreBrand } from '@/lib/storeBrand';
 
 interface StoreForm {
   name: string;
+  brand: StoreBrand;
   address: string;
   lat: string;
   lng: string;
@@ -41,6 +43,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'store' | 'series' | 'reservations'>('store');
   const [storeForm, setStoreForm] = useState<StoreForm>({
     name: '',
+    brand: 'other',
     address: '',
     lat: '',
     lng: '',
@@ -70,12 +73,13 @@ export default function AdminPage() {
     try {
       await adminRequest('/admin/stores', {
         storeName: storeForm.name,
+        storeBrand: storeForm.brand,
         address: storeForm.address,
         lat: parseFloat(storeForm.lat),
         lng: parseFloat(storeForm.lng),
       });
       setMessage({ type: 'success', text: '店舗を登録しました' });
-      setStoreForm({ name: '', address: '', lat: '', lng: '' });
+      setStoreForm({ name: '', brand: 'other', address: '', lat: '', lng: '' });
     } catch {
       setMessage({ type: 'error', text: '店舗の登録に失敗しました' });
     }
@@ -163,6 +167,20 @@ export default function AdminPage() {
               onChange={(e) => setStoreForm({ ...storeForm, name: e.target.value })}
               required
             />
+          </div>
+          <div>
+            <label className={labelClass}>ブランド</label>
+            <select
+              className={inputClass}
+              value={storeForm.brand}
+              onChange={(e) => setStoreForm({ ...storeForm, brand: e.target.value as StoreBrand })}
+            >
+              {STORE_BRAND_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className={labelClass}>住所</label>

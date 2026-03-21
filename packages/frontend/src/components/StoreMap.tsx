@@ -3,10 +3,12 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { getStoreBrandImagePath, type StoreBrand } from '@/lib/storeBrand';
 
 export interface MapStore {
   storeId: string;
   storeName: string;
+  storeBrand: StoreBrand;
   address: string;
   lat: number;
   lng: number;
@@ -47,7 +49,7 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // マーカー更新
   useEffect(() => {
@@ -58,12 +60,13 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
     if (stores.length === 0) return;
 
     stores.forEach((store) => {
+      const logoPath = getStoreBrandImagePath(store.storeBrand);
       const icon = L.divIcon({
         className: 'store-map-marker-icon',
         html: `
           <div class="store-map-marker">
             <img
-              src="/shop_logo.png"
+              src="${logoPath}"
               alt=""
               class="store-map-marker-image"
             />

@@ -1,4 +1,4 @@
-import type { KujiSeries, Prize } from '@ichiban-kuji/shared';
+import type { KujiSeries, Prize, StoreBrand } from '@ichiban-kuji/shared';
 
 export interface SeedKujiSeriesFixture {
   seriesId: string;
@@ -14,6 +14,7 @@ export interface SeedKujiSeriesFixture {
 export interface SeedStoreFixture {
   storeId: string;
   storeName: string;
+  storeBrand?: StoreBrand;
   address: string;
   lat: number;
   lng: number;

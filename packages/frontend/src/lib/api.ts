@@ -1,3 +1,5 @@
+import { normalizeStoreBrand, type StoreBrand } from './storeBrand';
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 
 interface ApiResponse<T> {
@@ -9,6 +11,7 @@ interface ApiResponse<T> {
 interface RawStore {
   storeId: string;
   storeName: string;
+  storeBrand?: StoreBrand;
   address: string;
   lat: number;
   lng: number;
@@ -118,6 +121,7 @@ function normalizeStore(store: RawStore): Store {
   return {
     storeId: store.storeId,
     storeName: store.storeName,
+    storeBrand: normalizeStoreBrand(store.storeBrand, store.storeName),
     address: store.address,
     lat: store.lat,
     lng: store.lng,
@@ -154,6 +158,7 @@ function normalizeWatchlistItem(item: RawWatchlistItem): WatchlistItem {
 export interface Store {
   storeId: string;
   storeName: string;
+  storeBrand: StoreBrand;
   address: string;
   lat: number;
   lng: number;
