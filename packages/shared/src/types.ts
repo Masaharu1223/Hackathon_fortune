@@ -17,6 +17,7 @@ export interface Store {
   lat: number;
   lng: number;
   managerId: string;
+  convenienceBrand?: 'seven_eleven' | 'lawson' | 'family_mart';
   createdAt: string;
   updatedAt: string;
 }

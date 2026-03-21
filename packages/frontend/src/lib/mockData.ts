@@ -8,6 +8,7 @@ export const MOCK_STORES: Store[] = [
     lat: 35.6591,
     lng: 139.6989,
     distanceKm: 0.3,
+    convenienceBrand: 'seven_eleven',
     series: [
       {
         seriesId: 'series_001',
@@ -48,6 +49,7 @@ export const MOCK_STORES: Store[] = [
     lat: 35.6614,
     lng: 139.6983,
     distanceKm: 0.6,
+    convenienceBrand: 'lawson',
     series: [
       {
         seriesId: 'series_003',
@@ -74,6 +76,7 @@ export const MOCK_STORES: Store[] = [
     lat: 35.6628,
     lng: 139.6974,
     distanceKm: 0.9,
+    convenienceBrand: 'family_mart',
     series: [
       {
         seriesId: 'series_004',
@@ -113,6 +116,7 @@ export const MOCK_STORES: Store[] = [
     lat: 35.6673,
     lng: 139.7044,
     distanceKm: 1.4,
+    convenienceBrand: 'seven_eleven',
     series: [
       {
         seriesId: 'series_006',
@@ -137,6 +141,7 @@ export const MOCK_STORES: Store[] = [
     lat: 35.6488,
     lng: 139.7031,
     distanceKm: 2.1,
+    convenienceBrand: 'lawson',
     series: [
       {
         seriesId: 'series_007',

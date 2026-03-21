@@ -13,6 +13,7 @@ interface RawStore {
   lat: number;
   lng: number;
   distance?: number;
+  convenienceBrand?: 'seven_eleven' | 'lawson' | 'family_mart';
   kujiSeries?: RawKujiSeries[];
 }
 
@@ -122,6 +123,7 @@ function normalizeStore(store: RawStore): Store {
     lat: store.lat,
     lng: store.lng,
     distanceKm: store.distance,
+    convenienceBrand: store.convenienceBrand,
     series: (store.kujiSeries ?? []).map(normalizeSeries),
   };
 }
@@ -158,6 +160,7 @@ export interface Store {
   lat: number;
   lng: number;
   distanceKm?: number;
+  convenienceBrand?: 'seven_eleven' | 'lawson' | 'family_mart';
   series: KujiSeries[];
 }
 

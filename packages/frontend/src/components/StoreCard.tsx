@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Store } from '@/lib/api';
 
 function statusBadge(status: string) {
@@ -28,20 +29,46 @@ function statusBadge(status: string) {
   }
 }
 
+function getBrandLogo(brand?: string) {
+  switch (brand) {
+    case 'seven_eleven':
+      return '/seven_eleven.png';
+    case 'lawson':
+      return '/lawson.png';
+    case 'family_mart':
+      return '/family_mart.png';
+    default:
+      return null;
+  }
+}
+
 interface StoreCardProps {
   store: Store;
 }
 
 export default function StoreCard({ store }: StoreCardProps) {
+  const logoSrc = getBrandLogo(store.convenienceBrand);
+
   return (
     <Link
       href={`/stores/detail/?id=${store.storeId}`}
       className="ui-card block rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-2 flex items-start justify-between">
-        <div>
-          <h3 className="text-base font-semibold text-content-strong">{store.storeName}</h3>
-          <p className="mt-0.5 text-sm text-content-muted">{store.address}</p>
+        <div className="flex items-center gap-2">
+          {logoSrc && (
+            <Image
+              src={logoSrc}
+              alt={store.convenienceBrand || ''}
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+          )}
+          <div>
+            <h3 className="text-base font-semibold text-content-strong">{store.storeName}</h3>
+            <p className="mt-0.5 text-sm text-content-muted">{store.address}</p>
+          </div>
         </div>
         {store.distanceKm !== undefined && (
           <span className="ui-badge ui-badge-brand shrink-0 px-2.5 py-1 text-xs">
