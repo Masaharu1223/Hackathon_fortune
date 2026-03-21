@@ -41,7 +41,7 @@ SEED_REGION=meguro-station npm run seed:dev
 
 - `ローソン` / `lawson` -> `lawson`
 - `ファミリーマート` / `ファミマ` / `familymart` -> `familymart`
-- `セブン` / `7-eleven` / `seven-eleven` -> `seven-eleven`
+- `セブン` / `7-eleven` / `seven-eleven` / `seven` -> `seven-eleven`
 - それ以外 -> `other`
 
 `other` はフロント側で既存ロゴ (`/shop_logo.png`) に割り当てられます。
