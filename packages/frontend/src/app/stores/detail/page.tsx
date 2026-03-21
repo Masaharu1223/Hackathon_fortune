@@ -14,7 +14,6 @@ import {
   type Store,
 } from '@/lib/api';
 import { isLoggedIn } from '@/lib/auth';
-import { MOCK_STORES } from '@/lib/mockData';
 import { addMyStore, isMyStore, removeMyStore } from '@/lib/myStores';
 import KujiCard from '@/components/KujiCard';
 
@@ -51,24 +50,37 @@ function StoreDetailContent() {
   }, [reserveTarget, reserving]);
 
   useEffect(() => {
-    if (!storeId) return;
+    if (!storeId) {
+      setLoading(false);
+      return;
+    }
+
+    let isActive = true;
 
     async function fetchStore() {
+      setLoading(true);
+      setError(null);
+
       try {
         const data = await getStore(storeId);
+        if (!isActive) return;
         setStore(data);
       } catch {
-        const fallbackStore = MOCK_STORES.find((item) => item.storeId === storeId);
-        if (fallbackStore) {
-          setStore(fallbackStore);
-        } else {
-          setError('店舗情報の取得に失敗しました。');
-        }
+        if (!isActive) return;
+        setStore(null);
+        setError('店舗情報の取得に失敗しました。');
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     }
+
     fetchStore();
+
+    return () => {
+      isActive = false;
+    };
   }, [storeId]);
 
   useEffect(() => {
