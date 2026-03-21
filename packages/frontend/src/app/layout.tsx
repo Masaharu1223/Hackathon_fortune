@@ -11,7 +11,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "一番くじナビ",
+  title: "Stockuji",
   description: "近くの一番くじ取扱店を探して、お気に入りのくじを予約しよう",
 };
 
