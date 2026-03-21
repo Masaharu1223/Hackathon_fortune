@@ -7,6 +7,7 @@ import { ApiStack } from "../lib/stacks/api-stack";
 import { NotificationStack } from "../lib/stacks/notification-stack";
 import { SchedulerStack } from "../lib/stacks/scheduler-stack";
 import { FrontendStack } from "../lib/stacks/frontend-stack";
+import { LocationStack } from "../lib/stacks/location-stack";
 
 const app = new cdk.App();
 
@@ -33,11 +34,18 @@ const notification = new NotificationStack(
   },
 );
 
+const locationStack = new LocationStack(
+  app,
+  `${stage}-IchibanKuji-Location`,
+  { env },
+);
+
 const api = new ApiStack(app, `${stage}-IchibanKuji-Api`, {
   env,
   mainTable: database.mainTable,
   geoTable: database.geoTable,
   notificationQueue: notification.queue,
+  placeIndex: locationStack.placeIndex,
 });
 
 new SchedulerStack(app, `${stage}-IchibanKuji-Scheduler`, {
