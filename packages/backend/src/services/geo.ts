@@ -32,6 +32,7 @@ export async function putStore(store: Store): Promise<void> {
       Item: {
         storeId: { S: store.storeId },
         storeName: { S: store.storeName },
+        storeBrand: { S: store.storeBrand },
         address: { S: store.address },
         managerId: { S: store.managerId },
       },

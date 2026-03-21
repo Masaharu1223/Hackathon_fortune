@@ -103,7 +103,7 @@ async function queryItems(params) {
 async function updateItem(key, updateExpression, expressionAttributeValues, expressionAttributeNames, conditionExpression) {
     const params = {
         TableName: shared_1.TABLE_NAME,
-        Key: key,
+        Key: { PK: key.PK, SK: key.SK },
         UpdateExpression: updateExpression,
         ExpressionAttributeValues: expressionAttributeValues,
         ReturnValues: 'ALL_NEW',
@@ -116,7 +116,7 @@ async function updateItem(key, updateExpression, expressionAttributeValues, expr
 async function deleteItem(key) {
     const params = {
         TableName: shared_1.TABLE_NAME,
-        Key: key,
+        Key: { PK: key.PK, SK: key.SK },
     };
     await exports.ddbDoc.send(new lib_dynamodb_1.DeleteCommand(params));
 }

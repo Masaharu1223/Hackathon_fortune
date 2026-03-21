@@ -54,6 +54,7 @@ function searchStores(stores: Store[], query: string): MapStore[] {
       results.push({
         storeId: store.storeId,
         storeName: store.storeName,
+        storeBrand: store.storeBrand,
         address: store.address,
         lat: store.lat,
         lng: store.lng,

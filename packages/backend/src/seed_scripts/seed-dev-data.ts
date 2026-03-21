@@ -6,6 +6,7 @@ import {
   seedStoreRegions,
   type SeedStoreFixture,
 } from './fixtures/devStoreRegions.js';
+import { resolveStoreBrand } from '../utils/storeBrand.js';
 
 const ENV_FILE_PATH = path.resolve(__dirname, '../../.env.local');
 
@@ -42,10 +43,12 @@ async function seedStore(
     putStore(store: Store): Promise<void>;
   },
 ): Promise<number> {
+  const storeBrand = resolveStoreBrand(storeFixture.storeBrand, storeFixture.storeName);
   const storeItem: Store & Record<string, unknown> = {
     ...seedDeps.keys.store(storeFixture.storeId),
     storeId: storeFixture.storeId,
     storeName: storeFixture.storeName,
+    storeBrand,
     address: storeFixture.address,
     lat: storeFixture.lat,
     lng: storeFixture.lng,
@@ -59,6 +62,7 @@ async function seedStore(
     seedDeps.putStore({
       storeId: storeFixture.storeId,
       storeName: storeFixture.storeName,
+      storeBrand,
       address: storeFixture.address,
       lat: storeFixture.lat,
       lng: storeFixture.lng,

@@ -1,5 +1,7 @@
 // === Entity Types ===
 
+export type StoreBrand = 'lawson' | 'familymart' | 'seven-eleven' | 'other';
+
 export interface User {
   userId: string;
   displayName: string;
@@ -13,6 +15,7 @@ export interface User {
 export interface Store {
   storeId: string;
   storeName: string;
+  storeBrand: StoreBrand;
   address: string;
   lat: number;
   lng: number;

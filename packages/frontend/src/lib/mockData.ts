@@ -4,6 +4,7 @@ export const MOCK_STORES: Store[] = [
   {
     storeId: '3b6d6a77-a9ac-482c-9874-2ff8dd4cb265',
     storeName: 'セブン-イレブン 渋谷道玄坂店',
+    storeBrand: 'seven-eleven',
     address: '東京都渋谷区道玄坂1-12-1',
     lat: 35.6591,
     lng: 139.6989,
@@ -43,6 +44,7 @@ export const MOCK_STORES: Store[] = [
   {
     storeId: 'f54d1a2a-833b-4b35-aaf1-8e47e40ac796',
     storeName: 'ローソン 渋谷センター街店',
+    storeBrand: 'lawson',
     address: '東京都渋谷区宇田川町31-2',
     lat: 35.6614,
     lng: 139.6983,
@@ -67,6 +69,7 @@ export const MOCK_STORES: Store[] = [
   {
     storeId: '3b36b879-bb41-4df9-b7aa-ff9cba33f89c',
     storeName: 'ファミリーマート 渋谷公園通り店',
+    storeBrand: 'familymart',
     address: '東京都渋谷区宇田川町12-7',
     lat: 35.6628,
     lng: 139.6974,

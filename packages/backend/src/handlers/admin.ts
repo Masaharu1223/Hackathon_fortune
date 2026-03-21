@@ -10,6 +10,7 @@ import {
 import { keys, getItem, putItem, updateItem, queryItems } from '../services/dynamodb.js';
 import { putStore as geoputStore } from '../services/geo.js';
 import { geocodeAddress, suggestAddresses } from '../services/location.js';
+import { resolveStoreBrand } from '../utils/storeBrand.js';
 
 // ---------------------------------------------------------------------------
 // CORS headers
@@ -142,11 +143,13 @@ async function createStore(
   const storeId = uuidv4();
   const now = new Date().toISOString();
   const storeKeys = keys.store(storeId);
+  const storeBrand = resolveStoreBrand(body.storeBrand, body.storeName);
 
   const store: Store & Record<string, unknown> = {
     ...storeKeys,
     storeId,
     storeName: body.storeName,
+    storeBrand,
     address: body.address,
     lat,
     lng,
@@ -161,6 +164,7 @@ async function createStore(
     geoputStore({
       storeId,
       storeName: body.storeName,
+      storeBrand,
       address: body.address,
       lat,
       lng,
@@ -193,6 +197,10 @@ async function updateStore(
 
   const body = JSON.parse(event.body) as Partial<Store>;
   const now = new Date().toISOString();
+  const nextStoreName = body.storeName ?? existingStore.storeName;
+  const nextStoreBrand = body.storeBrand !== undefined || body.storeName || !existingStore.storeBrand
+    ? resolveStoreBrand(body.storeBrand ?? existingStore.storeBrand, nextStoreName)
+    : existingStore.storeBrand;
 
   const updateExprParts: string[] = ['updatedAt = :now'];
   const exprValues: Record<string, unknown> = { ':now': now };
@@ -215,6 +223,8 @@ async function updateStore(
     updateExprParts.push('lng = :lng');
     exprValues[':lng'] = body.lng;
   }
+  updateExprParts.push('storeBrand = :storeBrand');
+  exprValues[':storeBrand'] = nextStoreBrand;
 
   const storeKeys = keys.store(storeId);
   const updated = await updateItem(
@@ -224,11 +234,19 @@ async function updateStore(
     Object.keys(exprNames).length > 0 ? exprNames : undefined,
   );
 
-  // If location changed, also update the geo table
-  if (body.lat != null || body.lng != null) {
+  const shouldSyncGeo =
+    body.storeName !== undefined
+    || body.address !== undefined
+    || body.lat != null
+    || body.lng != null
+    || body.storeBrand !== undefined
+    || !existingStore.storeBrand;
+
+  if (shouldSyncGeo) {
     const updatedStore: Store = {
       storeId,
-      storeName: body.storeName ?? existingStore.storeName,
+      storeName: nextStoreName,
+      storeBrand: nextStoreBrand,
       address: body.address ?? existingStore.address,
       lat: body.lat ?? existingStore.lat,
       lng: body.lng ?? existingStore.lng,

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_fs_1 = require("node:fs");
 const node_path_1 = __importDefault(require("node:path"));
 const devStoreRegions_js_1 = require("./fixtures/devStoreRegions.js");
+const storeBrand_js_1 = require("../utils/storeBrand.js");
 const ENV_FILE_PATH = node_path_1.default.resolve(__dirname, '../../.env.local');
 if ((0, node_fs_1.existsSync)(ENV_FILE_PATH)) {
     process.loadEnvFile(ENV_FILE_PATH);
@@ -25,10 +26,12 @@ function getRegionId() {
     return process.env.SEED_REGION ?? devStoreRegions_js_1.DEFAULT_SEED_REGION;
 }
 async function seedStore(storeFixture, managerId, timestamp, seedDeps) {
+    const storeBrand = (0, storeBrand_js_1.resolveStoreBrand)(storeFixture.storeBrand, storeFixture.storeName);
     const storeItem = {
         ...seedDeps.keys.store(storeFixture.storeId),
         storeId: storeFixture.storeId,
         storeName: storeFixture.storeName,
+        storeBrand,
         address: storeFixture.address,
         lat: storeFixture.lat,
         lng: storeFixture.lng,
@@ -41,6 +44,7 @@ async function seedStore(storeFixture, managerId, timestamp, seedDeps) {
         seedDeps.putStore({
             storeId: storeFixture.storeId,
             storeName: storeFixture.storeName,
+            storeBrand,
             address: storeFixture.address,
             lat: storeFixture.lat,
             lng: storeFixture.lng,

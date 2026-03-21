@@ -34,3 +34,32 @@ npm run seed:dev
 ```sh
 SEED_REGION=meguro-station npm run seed:dev
 ```
+
+## 既存店舗の `storeBrand` backfill
+
+既存の `STORE#... / PROFILE` レコードを走査して、`storeName` から `storeBrand` を埋めます。
+
+- `ローソン` / `lawson` -> `lawson`
+- `ファミリーマート` / `ファミマ` / `familymart` -> `familymart`
+- `セブン` / `7-eleven` / `seven-eleven` -> `seven-eleven`
+- それ以外 -> `other`
+
+`other` はフロント側で既存ロゴ (`/shop_logo.png`) に割り当てられます。
+
+まず dry-run で確認:
+
+```sh
+npm run backfill:store-brands -w packages/backend -- --dry-run
+```
+
+問題なければ書き込み実行:
+
+```sh
+npm run backfill:store-brands -w packages/backend
+```
+
+既存の `storeBrand` も店舗名ベースで上書きしたい場合:
+
+```sh
+npm run backfill:store-brands -w packages/backend -- --force
+```
