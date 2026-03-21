@@ -277,3 +277,14 @@ export async function cancelReservation(
     method: 'DELETE',
   });
 }
+
+export async function updateKujiSeriesTickets(
+  storeId: string,
+  seriesId: string,
+  remainingTickets: number,
+): Promise<void> {
+  return request(`/admin/stores/${storeId}/kuji/${seriesId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ remainingTickets }),
+  });
+}
