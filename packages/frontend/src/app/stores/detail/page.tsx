@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import {
   addToWatchlist,
   createReservation,
+  getReservations,
   getStore,
   getWatchlist,
   removeFromWatchlist,
@@ -29,6 +30,8 @@ function StoreDetailContent() {
   const [drawCount, setDrawCount] = useState(1);
   const [watchlistSeriesIds, setWatchlistSeriesIds] = useState<string[]>([]);
   const [watchlistUpdatingId, setWatchlistUpdatingId] = useState<string | null>(null);
+  const [reservedSeriesIds, setReservedSeriesIds] = useState<string[]>([]);
+  const [reservationsLoaded, setReservationsLoaded] = useState(!isLoggedIn());
 
   useEffect(() => {
     setIsFavorite(storeId ? isMyStore(storeId) : false);
@@ -90,6 +93,34 @@ function StoreDetailContent() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+
+    let isActive = true;
+
+    async function fetchReservations() {
+      try {
+        const items = await getReservations();
+        if (!isActive) return;
+        setReservedSeriesIds(
+          items
+            .filter((item) => item.status === 'pending' || item.status === 'won')
+            .map((item) => item.seriesId),
+        );
+      } catch {
+        // Keep the detail view usable even if reservation hydration fails.
+      } finally {
+        if (isActive) setReservationsLoaded(true);
+      }
+    }
+
+    fetchReservations();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const handleReserve = async (series: KujiSeries) => {
     if (!isLoggedIn()) {
       window.location.href = '/login/';
@@ -110,6 +141,7 @@ function StoreDetailContent() {
     setReserving(reserveTarget.seriesId);
     try {
       await createReservation(storeId, reserveTarget.seriesId, drawCount);
+      setReservedSeriesIds((prev) => [...prev, reserveTarget.seriesId]);
       alert('購入権利の予約が完了しました。抽選結果は予約一覧で確認できます。');
       setReserveTarget(null);
       try {
@@ -236,6 +268,8 @@ function StoreDetailContent() {
                 series={series}
                 storeId={store.storeId}
                 onReserve={handleReserve}
+                isReserved={reservedSeriesIds.includes(series.seriesId)}
+                reservationPending={!reservationsLoaded}
                 isWatchlisted={watchlistSeriesIds.includes(series.seriesId)}
                 isWatchlistPending={watchlistUpdatingId === series.seriesId}
                 onToggleWatchlist={handleToggleWatchlist}
