@@ -1,6 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import type { KujiSeries } from '@/lib/api';
-import { MOCK_STORES } from '@/lib/mockData';
+import { useEffect, useMemo, useState } from 'react';
+import { getNearbyStores, type KujiSeries, type Store } from '@/lib/api';
 
 type KujiListing = {
   storeId: string;
@@ -9,6 +11,8 @@ type KujiListing = {
   distanceKm?: number;
   series: KujiSeries;
 };
+
+const DEFAULT_CENTER = { lat: 35.6595, lng: 139.7004 };
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -30,6 +34,18 @@ function prizePreview(prizes: KujiSeries['prizes']): string {
     .slice(0, 3)
     .map((prize) => `${prize.rank}賞 ${prize.name}`)
     .join(' / ');
+}
+
+function buildListings(stores: Store[]): KujiListing[] {
+  return stores.flatMap((store) =>
+    store.series.map((series) => ({
+      storeId: store.storeId,
+      storeName: store.storeName,
+      address: store.address,
+      distanceKm: store.distanceKm,
+      series,
+    })),
+  );
 }
 
 function KujiListingCard({
@@ -125,23 +141,84 @@ function KujiListingCard({
 }
 
 export default function KujiPage() {
-  const listings: KujiListing[] = MOCK_STORES.flatMap((store) =>
-    store.series.map((series) => ({
-      storeId: store.storeId,
-      storeName: store.storeName,
-      address: store.address,
-      distanceKm: store.distanceKm,
-      series,
-    })),
+  const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { timeout: 5000 },
+    );
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchNearbyKuji() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getNearbyStores(center.lat, center.lng);
+        if (cancelled) return;
+        setStores(data);
+      } catch {
+        if (cancelled) return;
+        setStores([]);
+        setError('近くのくじ情報の取得に失敗しました。');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchNearbyKuji();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [center.lat, center.lng]);
+
+  const listings = useMemo(() => buildListings(stores), [stores]);
+
+  const lotteryListings = useMemo(
+    () =>
+      listings
+        .filter((listing) => listing.series.status === 'upcoming')
+        .sort((a, b) => a.series.releaseDate.localeCompare(b.series.releaseDate)),
+    [listings],
   );
 
-  const lotteryListings = listings
-    .filter((listing) => listing.series.status === 'upcoming')
-    .sort((a, b) => a.series.releaseDate.localeCompare(b.series.releaseDate));
+  const onSaleListings = useMemo(
+    () =>
+      listings
+        .filter((listing) => listing.series.status === 'on_sale')
+        .sort((a, b) => a.series.remainingTickets - b.series.remainingTickets),
+    [listings],
+  );
 
-  const onSaleListings = listings
-    .filter((listing) => listing.series.status === 'on_sale')
-    .sort((a, b) => a.series.remainingTickets - b.series.remainingTickets);
+  if (loading && stores.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="ui-spinner mb-4 h-10 w-10 animate-spin rounded-full border-4" />
+        <p className="text-sm text-content-muted">近くのくじ情報を読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ui-panel-danger rounded-2xl p-6 text-center">
+        <p className="text-sm text-danger">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-24">

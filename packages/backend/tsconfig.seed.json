@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist-seed",
+    "rootDir": "./src"
+  },
+  "include": [
+    "src/seed_scripts/**/*",
+    "src/services/dynamodb.ts",
+    "src/services/geo.ts"
+  ]
+}

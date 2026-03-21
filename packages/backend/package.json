@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "seed:dev": "tsc -p tsconfig.seed.json && node dist-seed/seed_scripts/seed-dev-data.js"
   },
   "dependencies": {
     "@ichiban-kuji/shared": "*",
