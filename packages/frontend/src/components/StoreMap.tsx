@@ -26,6 +26,7 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const currentLocMarkerRef = useRef<L.Marker | null>(null);
+  const initialCenterRef = useRef(center);
 
   // マップ初期化
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function StoreMap({ stores, center }: StoreMapProps) {
 
     mapRef.current = L.map(containerRef.current, {
       zoomControl: false,
-    }).setView([center.lat, center.lng], 14);
+    }).setView([initialCenterRef.current.lat, initialCenterRef.current.lng], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
