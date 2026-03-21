@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { MOCK_STORES } from '@/lib/mockData';
 import { getNearbyStores, type Store } from '@/lib/api';
 import type { MapStore } from '@/components/StoreMap';
 
@@ -73,21 +72,28 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [center, setCenter] = useState({ lat: 35.6595, lng: 139.7004 }); // 渋谷デフォルト
   const [stores, setStores] = useState<Store[]>([]);
-  const [usingMockData, setUsingMockData] = useState(false);
+  const [loadingStores, setLoadingStores] = useState(true);
+  const [storesError, setStoresError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function fetchNearbyStores() {
+      setLoadingStores(true);
+      setStoresError(null);
+
       try {
         const data = await getNearbyStores(center.lat, center.lng);
         if (cancelled) return;
         setStores(data);
-        setUsingMockData(false);
       } catch {
         if (cancelled) return;
-        setStores(MOCK_STORES);
-        setUsingMockData(true);
+        setStores([]);
+        setStoresError('周辺店舗情報の取得に失敗しました。');
+      } finally {
+        if (!cancelled) {
+          setLoadingStores(false);
+        }
       }
     }
 
@@ -185,20 +191,25 @@ export default function Home() {
         )}
       </div>
 
+      {storesError && (
+        <div className="ui-panel-danger mb-3 rounded-xl p-3 text-sm">
+          <p className="text-danger">{storesError}</p>
+        </div>
+      )}
+
       {/* 結果サマリー */}
       {debouncedQuery && (
         <div className="mb-2 shrink-0 flex items-center gap-2 text-sm">
           <span className="text-content-muted">
-            {results.length > 0
+            {loadingStores && stores.length === 0
+              ? '周辺店舗を読み込み中...'
+              : storesError
+                ? '店舗情報を取得できませんでした'
+                : results.length > 0
               ? `${results.length}店舗で在庫あり`
               : '在庫が見つかりませんでした'}
           </span>
-          {usingMockData && (
-            <span className="ui-badge ui-badge-neutral px-2 py-0.5 text-xs">
-              モック表示
-            </span>
-          )}
-          {results.length > 0 && (
+          {!loadingStores && !storesError && results.length > 0 && (
             <span className="ui-badge ui-badge-brand px-2 py-0.5 text-xs">
               残り合計 {results.reduce((n, s) => n + s.remainingTickets, 0)} 個
             </span>
@@ -208,7 +219,24 @@ export default function Home() {
 
       {/* 地図 */}
       <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-border shadow-sm">
-        {!debouncedQuery ? (
+        {debouncedQuery && loadingStores && stores.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center bg-surface p-8 text-center">
+            <div className="ui-spinner mb-4 h-10 w-10 animate-spin rounded-full border-4" />
+            <p className="text-sm text-content-muted">周辺店舗を読み込み中...</p>
+          </div>
+        ) : storesError && debouncedQuery ? (
+          <div className="flex h-full flex-col items-center justify-center bg-surface p-8 text-center">
+            <div className="mb-4 rounded-2xl bg-danger/10 p-4 text-danger">
+              <svg className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <p className="font-medium text-content">検索結果を表示できません</p>
+            <p className="mt-1 text-sm text-content-subtle">
+              時間をおいて再度お試しください
+            </p>
+          </div>
+        ) : !debouncedQuery ? (
           <div className="flex h-full flex-col items-center justify-center bg-brand-soft p-8 text-center">
             <div className="mb-4 rounded-2xl bg-brand-soft p-4">
               <svg className="h-10 w-10 text-brand" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">

@@ -140,7 +140,7 @@ export async function updateItem(
 ): Promise<Record<string, unknown> | undefined> {
   const params: UpdateCommandInput = {
     TableName: TABLE_NAME,
-    Key: key,
+    Key: { PK: key.PK, SK: key.SK },
     UpdateExpression: updateExpression,
     ExpressionAttributeValues: expressionAttributeValues,
     ReturnValues: 'ALL_NEW',
@@ -154,7 +154,7 @@ export async function updateItem(
 export async function deleteItem(key: DynamoDBKeys): Promise<void> {
   const params: DeleteCommandInput = {
     TableName: TABLE_NAME,
-    Key: key,
+    Key: { PK: key.PK, SK: key.SK },
   };
   await ddbDoc.send(new DeleteCommand(params));
 }

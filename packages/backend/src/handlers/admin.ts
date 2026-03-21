@@ -9,6 +9,7 @@ import {
 } from '@ichiban-kuji/shared';
 import { keys, getItem, putItem, updateItem, queryItems } from '../services/dynamodb.js';
 import { putStore as geoputStore } from '../services/geo.js';
+import { geocodeAddress, suggestAddresses } from '../services/location.js';
 
 // ---------------------------------------------------------------------------
 // CORS headers
@@ -84,6 +85,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return await getReservations(userId, storeId, seriesId);
     }
 
+    // POST /admin/geocode — 住所→座標変換
+    if (method === 'POST' && path === '/admin/geocode') {
+      return await handleGeocode(event);
+    }
+
+    // GET /admin/suggest — 住所オートコンプリート
+    if (method === 'GET' && path === '/admin/suggest') {
+      return await handleSuggest(event);
+    }
+
     return jsonResponse(404, { success: false, error: 'Not found' });
   } catch (err) {
     console.error('Admin handler error:', err);
@@ -105,11 +116,27 @@ async function createStore(
 
   const body = JSON.parse(event.body) as Partial<Store>;
 
-  if (!body.storeName || !body.address || body.lat == null || body.lng == null) {
+  if (!body.storeName || !body.address) {
     return jsonResponse(400, {
       success: false,
-      error: 'storeName, address, lat, and lng are required',
+      error: 'storeName and address are required',
     });
+  }
+
+  // lat/lng が未指定の場合、住所から自動ジオコーディング
+  let lat = body.lat;
+  let lng = body.lng;
+
+  if (lat == null || lng == null) {
+    const geocoded = await geocodeAddress(body.address);
+    if (!geocoded) {
+      return jsonResponse(400, {
+        success: false,
+        error: '住所から座標を取得できませんでした。住所を確認してください。',
+      });
+    }
+    lat = geocoded.lat;
+    lng = geocoded.lng;
   }
 
   const storeId = uuidv4();
@@ -121,8 +148,8 @@ async function createStore(
     storeId,
     storeName: body.storeName,
     address: body.address,
-    lat: body.lat,
-    lng: body.lng,
+    lat,
+    lng,
     managerId,
     createdAt: now,
     updatedAt: now,
@@ -135,8 +162,8 @@ async function createStore(
       storeId,
       storeName: body.storeName,
       address: body.address,
-      lat: body.lat,
-      lng: body.lng,
+      lat,
+      lng,
       managerId,
       createdAt: now,
       updatedAt: now,
@@ -356,4 +383,45 @@ async function getReservations(
   });
 
   return jsonResponse(200, { success: true, data: reservations });
+}
+
+// ---------------------------------------------------------------------------
+// Geocode / Suggest
+// ---------------------------------------------------------------------------
+
+async function handleGeocode(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return jsonResponse(400, { success: false, error: 'Request body is required' });
+  }
+
+  const { address } = JSON.parse(event.body) as { address?: string };
+  if (!address) {
+    return jsonResponse(400, { success: false, error: 'address is required' });
+  }
+
+  const result = await geocodeAddress(address);
+  if (!result) {
+    return jsonResponse(404, { success: false, error: '住所から座標を取得できませんでした' });
+  }
+
+  return jsonResponse(200, { success: true, data: result });
+}
+
+async function handleSuggest(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  const params = event.queryStringParameters;
+  const text = params?.text;
+
+  if (!text) {
+    return jsonResponse(400, { success: false, error: 'text query parameter is required' });
+  }
+
+  const biasLat = params?.lat ? parseFloat(params.lat) : undefined;
+  const biasLng = params?.lng ? parseFloat(params.lng) : undefined;
+
+  const suggestions = await suggestAddresses(text, biasLat, biasLng);
+  return jsonResponse(200, { success: true, data: suggestions });
 }

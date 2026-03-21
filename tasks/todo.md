@@ -26,6 +26,16 @@
 - [x] 店舗検索UI (Geolocation API) - home page with radius selector
 - [x] 店舗詳細ページ - /stores/detail?id=
 
+## Phase 2.5: AWS Location Service 導入 ← NOW
+- [ ] 2.5.1 CDK: Place Index リソース作成 (ジオコーディング用)
+- [ ] 2.5.2 CDK: Lambda に Location Service 権限付与
+- [ ] 2.5.3 Backend: ジオコーディングサービス作成 (住所→座標変換)
+- [ ] 2.5.4 Backend: 管理API に住所ジオコーディング統合 (lat/lng手動入力を不要に)
+- [ ] 2.5.5 Backend: 近隣検索を Location Service Places API に移行 (dynamodb-geo 置換)
+- [ ] 2.5.6 Frontend: 管理画面の店舗登録を住所入力ベースに改修
+- [ ] 2.5.7 Frontend: 住所オートコンプリート (SearchPlaceIndexForSuggestions)
+- [ ] 2.5.8 ビルド検証 + 動作確認
+
 ## Phase 3: くじ管理
 - [x] くじシリーズCRUD (admin API) - admin handler
 - [x] 管理画面 (店舗管理者用) - /admin page

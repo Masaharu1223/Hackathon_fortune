@@ -1,6 +1,8 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as location from "aws-cdk-lib/aws-location";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
@@ -11,6 +13,7 @@ interface ApiStackProps extends cdk.StackProps {
   mainTable: dynamodb.Table;
   geoTable: dynamodb.Table;
   notificationQueue: sqs.Queue;
+  placeIndex?: location.CfnPlaceIndex;
 }
 
 export class ApiStack extends cdk.Stack {
@@ -19,12 +22,13 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
-    const { mainTable, geoTable, notificationQueue } = props;
+    const { mainTable, geoTable, notificationQueue, placeIndex } = props;
 
     const commonEnv: Record<string, string> = {
       TABLE_NAME: mainTable.tableName,
       GEO_TABLE_NAME: geoTable.tableName,
       NOTIFICATION_QUEUE_URL: notificationQueue.queueUrl,
+      ...(placeIndex ? { LOCATION_PLACE_INDEX_NAME: placeIndex.indexName } : {}),
     };
 
     const backendSrc = path.join(__dirname, "../../../packages/backend/src");
@@ -69,6 +73,25 @@ export class ApiStack extends cdk.Stack {
       mainTable.grantReadWriteData(fn);
       geoTable.grantReadWriteData(fn);
       notificationQueue.grantSendMessages(fn);
+    }
+
+    // Location Service permissions for admin handler (geocoding, suggest)
+    if (placeIndex) {
+      const placeIndexArn = cdk.Stack.of(this).formatArn({
+        service: "geo",
+        resource: "place-index",
+        resourceName: placeIndex.indexName,
+      });
+      adminHandler.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: [
+            "geo:SearchPlaceIndexForText",
+            "geo:SearchPlaceIndexForSuggestions",
+            "geo:SearchPlaceIndexForPosition",
+          ],
+          resources: [placeIndexArn],
+        }),
+      );
     }
 
     // ── API Gateway ────────────────────────────────────────────────────
@@ -161,6 +184,14 @@ export class ApiStack extends cdk.Stack {
     // /api/v1/admin/stores/{storeId}/kuji/{seriesId}/reservations
     const adminReservations = adminKujiSeries.addResource("reservations");
     adminReservations.addMethod("GET", adminIntegration, authMethodOptions);
+
+    // /api/v1/admin/geocode
+    const adminGeocode = admin.addResource("geocode");
+    adminGeocode.addMethod("POST", adminIntegration, authMethodOptions);
+
+    // /api/v1/admin/suggest
+    const adminSuggest = admin.addResource("suggest");
+    adminSuggest.addMethod("GET", adminIntegration, authMethodOptions);
 
     // ── Outputs ────────────────────────────────────────────────────────
     new cdk.CfnOutput(this, "ApiUrl", {

@@ -19,8 +19,8 @@ const NAV_ITEMS = [
     icon: () => (
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g clipPath="url(#clip_kuji)">
-          <path d="M19.1875 14.3496H0.8125L10 4.22266L19.1875 14.3496Z" fill="currentColor" stroke="currentColor" strokeWidth="0.3" />
-          <path d="M22.7282 20.0506L6.47601 11.6458L19.0589 7.23024L22.7282 20.0506Z" fill="white" stroke="currentColor" strokeWidth="0.3" />
+          <path d="M10 4L19.5263 14.5H0.473721L10 4Z" fill="currentColor" strokeWidth={1.5} />
+          <path d="M22.1688 19.3677L7.35744 11.708L18.8243 7.68391L22.1688 19.3677Z" fill="white" stroke="currentColor" strokeWidth={1.5} />
         </g>
         <defs>
           <clipPath id="clip_kuji">
@@ -56,9 +56,8 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] text-[10px] font-medium transition-colors ${
-                active ? 'text-brand' : 'text-content-subtle'
-              }`}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] text-[10px] font-medium transition-colors ${active ? 'text-brand' : 'text-content-subtle'
+                }`}
             >
               <div className="flex h-6 w-6 items-center justify-center">
                 {item.icon(active)}
