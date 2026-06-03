@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getStore, updateKujiSeriesTickets, type KujiSeries } from '@/lib/api';
-import type { BoardScanResult } from '@/app/api/board-scan/route';
+interface BoardScanResult {
+  success: boolean;
+  prizes: { rank: string; count: number }[];
+  totalDetected: number;
+  error?: string;
+}
 
 interface DetectedPrize {
   rank: string;

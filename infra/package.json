@@ -9,14 +9,15 @@
     "deploy": "cdk deploy --all"
   },
   "dependencies": {
+    "@ichiban-kuji/shared": "*",
     "aws-cdk-lib": "^2.175.0",
     "constructs": "^10.4.0",
-    "source-map-support": "^0.5.21",
-    "@ichiban-kuji/shared": "*"
+    "source-map-support": "^0.5.21"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "aws-cdk": "^2.175.0",
-    "ts-node": "^10.9.2",
-    "@types/node": "^20.0.0"
+    "esbuild": "^0.28.0",
+    "ts-node": "^10.9.2"
   }
 }

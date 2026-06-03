@@ -39,6 +39,24 @@ export class FrontendStack extends cdk.Stack {
       this.bucket,
     );
 
+    // ── CloudFront Function: rewrite /path → /path/index.html ─────────
+    const rewriteFunction = new cloudfront.Function(this, "RewriteFunction", {
+      functionName: `${id}-RewriteFunction`,
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (uri.endsWith('/')) {
+    request.uri += 'index.html';
+  } else if (!uri.includes('.')) {
+    request.uri += '/index.html';
+  }
+  return request;
+}
+      `),
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+    });
+
     // ── CloudFront Distribution ────────────────────────────────────────
     this.distribution = new cloudfront.Distribution(this, "Distribution", {
       defaultRootObject: "index.html",
@@ -47,6 +65,10 @@ export class FrontendStack extends cdk.Stack {
         viewerProtocolPolicy:
           cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        functionAssociations: [{
+          function: rewriteFunction,
+          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+        }],
       },
       additionalBehaviors: {
         "/api/*": {
