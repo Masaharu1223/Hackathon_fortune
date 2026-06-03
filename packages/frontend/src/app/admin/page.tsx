@@ -24,13 +24,19 @@ interface SeriesForm {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('auth_token');
+  if (token) return { Authorization: `Bearer ${token}` };
+  return { 'x-dev-user-id': 'dev-user-001' };
+}
+
 async function adminRequest(path: string, body: unknown) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...getAuthHeaders(),
     },
     body: JSON.stringify(body),
   });
